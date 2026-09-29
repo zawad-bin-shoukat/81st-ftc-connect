@@ -1,0 +1,11 @@
+// Infrastructure only. Member and Cadre models come in the next phase.
+// See docs/architecture.md for the agreed profile fields.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
