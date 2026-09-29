@@ -24,12 +24,12 @@ model Member {
   cadreId            String    @map("cadre_id") @db.Uuid
   cadre              Cadre     @relation(fields: [cadreId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   bcsBatch           Int       @map("bcs_batch") @db.SmallInt
-  education          String?   @db.Text
-  university         String?   @db.VarChar(255)
+  education          String   @db.Text
+  university         String   @db.VarChar(255)
   phone              String    @unique @db.VarChar(20)
-  email              String?   @db.VarChar(255)
-  bloodGroup         String?   @map("blood_group") @db.VarChar(3)
-  homeDistrict       String?   @map("home_district") @db.VarChar(100)
+  email              String   @db.VarChar(255)
+  bloodGroup         String   @map("blood_group") @db.VarChar(3)
+  homeDistrict       String   @map("home_district") @db.VarChar(100)
   aboutMe            String?   @map("about_me") @db.Text
   favouriteQuotation String?   @map("favourite_quotation") @db.Text
   profilePhotoKey    String?   @map("profile_photo_key") @db.VarChar(500)
