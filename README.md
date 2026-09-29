@@ -15,10 +15,10 @@ docs/           Architecture and environment notes
 In Terminal:
 
 ```bash
-cd "/Users/zawadtasin/Documents/Codex/2026-09-29/referenced-chatgpt-conversation-this-is-an-2/outputs/81st-ftc-connect"
+cd "/Users/zawadtasin/Desktop/81st FTC Connect/81st-ftc-connect"
 ```
 
-All commands below run from this folder. The scripts select the downloaded Node and Flutter tools automatically, without changing your shell settings. `.local/node` and `.local/flutter` point to SDKs in this chat's `work/tooling` folder; keep that folder. On another Mac, install the versions in `docs/environment.md` on PATH or recreate those links. The repository itself contains no SDK binaries.
+All commands below run from this folder. The scripts select the downloaded Node and Flutter tools automatically, without changing your shell settings. `.local/node` and `.local/flutter` point to SDKs at `/Users/zawadtasin/Documents/Codex/toolchains/ftc-connect`; keep that tools folder. They no longer depend on the original chat folder. On another Mac, install the versions in `docs/environment.md` on PATH or recreate those links. The repository itself contains no SDK binaries.
 
 ## Run the backend
 
@@ -79,4 +79,15 @@ Dependencies are already downloaded on this Mac. On a fresh checkout with the SD
 
 Nest CLI is installed inside the backend, so no global Nest installation is needed. Run it with `npx nest` from `apps/backend` using the pinned Node version, or use the scripts above.
 
-See `docs/architecture.md` for the agreed schema and `docs/environment.md` for verified versions and remaining setup. Do not delete `work/tooling` while these local SDK links are in use.
+See `docs/architecture.md` for the agreed schema and `docs/environment.md` for verified versions and remaining setup. The scripts calculate the project location automatically and support the spaces in this Desktop path.
+
+## Moving the project again
+
+Move the whole `81st-ftc-connect` folder, including its hidden `.git` and `.local` folders. Keep the SDK tools folder in place. From the new project root, run:
+
+```bash
+./scripts/flutter.sh clean
+./scripts/flutter.sh pub get
+```
+
+These regenerate Flutter settings; no member data or source files are removed. Update the example `cd` command above. Stop running apps and the local database before moving the folder. The participant spreadsheet next to this repository is not part of Git.

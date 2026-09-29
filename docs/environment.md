@@ -10,7 +10,7 @@ Checked on 2026-09-29, macOS 26.5.2, Apple Silicon (arm64).
 | NestJS | CLI 12.0.8 used to scaffold; local CLI/runtime resolved in package-lock.json |
 | Prisma | 7.10.0 pinned; schema validates; client generation passes |
 | PostgreSQL | Existing Homebrew 16.13 selected by project scripts; existing 14 and separate 5432 server untouched |
-| Flutter | 3.47.5 stable installed in work/tooling/flutter |
+| Flutter | 3.47.5 stable installed in /Users/zawadtasin/Documents/Codex/toolchains/ftc-connect/flutter |
 | Dart | 3.13.4, official arm64 SDK matching Flutter's engine |
 | Android | SDK 35.0.1 exists; command-line tools missing, licenses unverified, no emulator detected |
 | Java | JDK 21 folder exists; Android build not verified |
@@ -86,3 +86,9 @@ The installation audit reports four high-severity package findings involving Pri
 - Flutter: static analysis passed with no issues. Debug web compilation succeeded, and the browser visibly displayed `Hello World!` at port 8080. The `--empty` Flutter template has no test directory; no mobile automated tests are claimed.
 - Android/iOS: project files generated, but no native build or device launch has been verified.
 - Git: SDKs, caches, database files, credentials, generated Prisma code, and Android local settings are ignored.
+
+## Desktop relocation (2026-09-29)
+
+The project now lives at `/Users/zawadtasin/Desktop/81st FTC Connect/81st-ftc-connect`. Flutter and Node SDKs were copied to `/Users/zawadtasin/Documents/Codex/toolchains/ftc-connect`, a stable path without spaces. Ignored `.local` links now target these copies. The old chat tooling was preserved but is no longer needed by this project. Flutter generated settings were cleaned and regenerated for the new locations. The existing shell scripts resolve the repository root dynamically and quote paths containing spaces.
+
+Relocation checks passed: backend build and HTTP end-to-end test, direct backend HTTP response, Flutter analysis, release web build, and local web preview startup. Generated mobile settings contain no references to the old chat directory. Native Android/iOS and PostgreSQL setup remain pending as documented above.
