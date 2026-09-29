@@ -1,11 +1,43 @@
-// Infrastructure only. Member and Cadre models come in the next phase.
-// See docs/architecture.md for the agreed profile fields.
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
   moduleFormat = "esm"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model Cadre {
+  id      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name    String   @unique @db.VarChar(100)
+  members Member[]
+
+  @@map("cadres")
+}
+
+model Member {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ftcId              Int       @unique @map("ftc_id")
+  section            String    @db.VarChar(2)
+  name               String    @db.VarChar(150)
+  cadreId            String    @map("cadre_id") @db.Uuid
+  cadre              Cadre     @relation(fields: [cadreId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  bcsBatch           Int       @map("bcs_batch") @db.SmallInt
+  education          String?   @db.Text
+  university         String?   @db.VarChar(255)
+  phone              String    @unique @db.VarChar(20)
+  email              String?   @db.VarChar(255)
+  bloodGroup         String?   @map("blood_group") @db.VarChar(3)
+  homeDistrict       String?   @map("home_district") @db.VarChar(100)
+  aboutMe            String?   @map("about_me") @db.Text
+  favouriteQuotation String?   @map("favourite_quotation") @db.Text
+  profilePhotoKey    String?   @map("profile_photo_key") @db.VarChar(500)
+  isActive           Boolean   @default(true) @map("is_active")
+  phoneVerifiedAt    DateTime? @map("phone_verified_at") @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([cadreId])
+  @@map("members")
 }

@@ -65,7 +65,7 @@ In normal Terminal, run `./scripts/db.sh start` and `./scripts/backend.sh db:che
 
 ## Dependency notes
 
-Both app dependency lockfiles are committed. Prisma has no models yet; generation is supported, and generated code is ignored. The Nest app does not yet construct a Prisma client or connect to a database. `db:check` verifies connectivity through Prisma's CLI once PostgreSQL is running.
+Both app dependency lockfiles are committed. Prisma now has Member and Cadre models; generated code is ignored. The Nest app does not yet construct a Prisma client or connect to a database. `db:check` verifies connectivity through Prisma's CLI once PostgreSQL is running.
 
 The installation audit reports four high-severity package findings involving Prisma's dependency chain (`prisma`, `@prisma/config`, `deepmerge-ts`, `mysql2`). npm's proposed automatic fix downgrades Prisma to a different major, so it was not applied. This skeleton has no public deployment or database feature routes. Re-evaluate these dependencies before implementing or deploying the backend; do not use `npm audit fix --force` blindly.
 
@@ -92,3 +92,7 @@ The installation audit reports four high-severity package findings involving Pri
 The project now lives at `/Users/zawadtasin/Desktop/81st FTC Connect/81st-ftc-connect`. Flutter and Node SDKs were copied to `/Users/zawadtasin/Documents/Codex/toolchains/ftc-connect`, a stable path without spaces. Ignored `.local` links now target these copies. The old chat tooling was preserved but is no longer needed by this project. Flutter generated settings were cleaned and regenerated for the new locations. The existing shell scripts resolve the repository root dynamically and quote paths containing spaces.
 
 Relocation checks passed: backend build and HTTP end-to-end test, direct backend HTTP response, Flutter analysis, release web build, and local web preview startup. Generated mobile settings contain no references to the old chat directory. Native Android/iOS and PostgreSQL setup remain pending as documented above.
+
+## Environment completion and database foundation
+
+Subsequent normal-Terminal runs confirmed PostgreSQL startup and Prisma connectivity. iOS and Android both launched the Hello World app (user-confirmed). SDK 36 and CocoaPods 1.17.0 were verified installed. Earlier pending/blocked entries above record the initial setup session, not the current state. The first Member/Cadre migration has now been applied successfully to the local database, with schema verification and backend build checks.

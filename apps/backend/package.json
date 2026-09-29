@@ -21,7 +21,12 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
-    "db:check": "prisma db execute --file prisma/check.sql"
+    "db:check": "prisma db execute --file prisma/check.sql",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
+    "db:studio": "prisma studio",
+    "db:verify": "node scripts/verify-schema.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

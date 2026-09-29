@@ -1,6 +1,6 @@
 # 81st FTC Connect
 
-A local starter repository for Flutter + NestJS + Prisma + PostgreSQL. No product features or member data yet.
+A local starter repository for Flutter + NestJS + Prisma + PostgreSQL. The Member/Cadre database foundation is implemented; no product features or member data yet.
 
 ```text
 apps/mobile/     Flutter app: Android, iOS, optional browser preview
@@ -55,7 +55,7 @@ Run this in your normal Mac Terminal; the agent sandbox blocks PostgreSQL shared
 ./scripts/backend.sh db:check
 ```
 
-The script creates a separate local PostgreSQL 16 cluster and empty `ftc_connect` database at `127.0.0.1:55432`, with a random password stored in ignored local files. It does not touch your existing PostgreSQL server on port 5432. The generated `apps/backend/.env` is for development only. No application tables are created. `db:check` runs `SELECT 1` through Prisma's CLI; it does not modify data.
+The script creates a separate local PostgreSQL 16 cluster and `ftc_connect` database at `127.0.0.1:55432`, with a random password stored in ignored local files. It does not touch your existing PostgreSQL server on port 5432. The generated `apps/backend/.env` is for development only. The first migration creates `members` and `cadres`; no participant rows are imported. `db:check` runs `SELECT 1` through Prisma's CLI; it does not modify data.
 
 ```bash
 ./scripts/db.sh status
@@ -91,3 +91,24 @@ Move the whole `81st-ftc-connect` folder, including its hidden `.git` and `.loca
 ```
 
 These regenerate Flutter settings; no member data or source files are removed. Update the example `cd` command above. Stop running apps and the local database before moving the folder. The participant spreadsheet next to this repository is not part of Git.
+
+## Database foundation
+
+The initial migration is applied on this Mac. To inspect it:
+
+```bash
+./scripts/backend.sh db:status
+./scripts/backend.sh db:studio
+```
+
+Studio opens a local database browser; `members` and `cadres` should be empty. Treat it as an editor, not just a viewer. Stop it with Control-C.
+
+On a fresh local database after `./scripts/db.sh start`:
+
+```bash
+./scripts/backend.sh db:deploy
+./scripts/backend.sh db:generate
+./scripts/backend.sh db:verify
+```
+
+`db:deploy` applies saved migrations; `db:generate` rebuilds the typed client. `db:verify` uses synthetic rows inside a transaction and rolls them back. Read `docs/database.md` before making future schema changes.
