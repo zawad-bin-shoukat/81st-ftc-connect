@@ -16,7 +16,7 @@ The conversation preview is the source for this agreement. The original spreadsh
 | section                | VARCHAR(2)                                                                                         |
 | name                   | VARCHAR(150)                                                                                       |
 | cadre_id               | Foreign key to cadres.id                                                                           |
-| bcs_batch              | SMALLINT, e.g. 43; Flutter later displays 43rd                                                     |
+| bcs_batch              | SMALLINT, nullable when unknown; 43 displays as 43rd                                               |
 | education              | TEXT                                                                                               |
 | university             | VARCHAR(255)                                                                                       |
 | phone                  | VARCHAR(20), unique; international format (+ followed by up to 15 digits); normalize before import |
@@ -30,7 +30,7 @@ The conversation preview is the source for this agreement. The original spreadsh
 | phone_verified_at      | Timestamp, nullable                                                                                |
 | created_at, updated_at | Timezone-aware timestamps (millisecond precision)                                                  |
 
-The `cadres` lookup has a UUID primary key and a unique name (VARCHAR(100)). Members also require education, university, email, blood group, and home district; only about me, favourite quotation, photo key, and phone verification time remain nullable. Email must pass the database format check, but it is not unique. `is_active` defaults to true; timestamps default to the current time. Prisma maintains `updated_at` on updates; raw SQL must set it explicitly. Cadre deletion is restricted while members refer to it. Phone syntax does not prove ownership or reachability; OTP verification comes later. Cadre labels must be normalized before insertion (uniqueness is case-sensitive). Spreadsheet submission Timestamp is not a core profile field. Keep batch numbers numeric and normalize blood groups/cadre labels during the future import.
+The `cadres` lookup has a UUID primary key and a unique name (VARCHAR(100)). Members require FTC ID, name, section, cadre, phone, education, university, email, blood group, and home district. BCS batch may be NULL when unknown; any known batch must be positive. About me, favourite quotation, photo key, and phone verification time remain nullable. Email must pass the database format check, but it is not unique. `is_active` defaults to true; timestamps default to the current time. Prisma maintains `updated_at` on updates; raw SQL must set it explicitly. Cadre deletion is restricted while members refer to it. Phone syntax does not prove ownership or reachability; OTP verification comes later. Cadre labels must be normalized before insertion (uniqueness is case-sensitive). Spreadsheet submission Timestamp is not a core profile field. Keep batch numbers numeric and normalize blood groups/cadre labels during the future import.
 
 Later product scope: private directory for 580 approved participants; phone OTP login, view/search/filter members, edit own profile and photo. No public registration. OTP provider and photo storage remain undecided.
 

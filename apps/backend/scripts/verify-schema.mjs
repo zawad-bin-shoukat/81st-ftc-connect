@@ -164,6 +164,16 @@ try {
     '23514',
     ['members_email_not_blank', 'members_email_format'],
   );
+  await client.query(
+    'UPDATE members SET bcs_batch = NULL WHERE id = $1',
+    [member.id],
+  );
+  const { rows: [unknownBatch] } = await client.query(
+    'SELECT bcs_batch FROM members WHERE id = $1',
+    [member.id],
+  );
+  assert.equal(unknownBatch.bcs_batch, null);
+  passed++;
   console.log(`${passed} schema checks passed. All synthetic rows will be rolled back.`);
 } finally {
   await client.query('ROLLBACK');

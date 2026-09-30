@@ -23,7 +23,7 @@ model Member {
   name               String    @db.VarChar(150)
   cadreId            String    @map("cadre_id") @db.Uuid
   cadre              Cadre     @relation(fields: [cadreId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  bcsBatch           Int       @map("bcs_batch") @db.SmallInt
+  bcsBatch           Int?       @map("bcs_batch") @db.SmallInt
   education          String   @db.Text
   university         String   @db.VarChar(255)
   phone              String    @unique @db.VarChar(20)
