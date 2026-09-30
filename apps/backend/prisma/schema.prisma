@@ -26,9 +26,9 @@ model Member {
   bcsBatch           Int?       @map("bcs_batch") @db.SmallInt
   education          String   @db.Text
   university         String   @db.VarChar(255)
-  phone              String    @unique @db.VarChar(20)
+  phone              String    @unique @db.Text
   email              String   @db.VarChar(255)
-  bloodGroup         String   @map("blood_group") @db.VarChar(3)
+  bloodGroup         String   @map("blood_group") @db.Text
   homeDistrict       String   @map("home_district") @db.VarChar(100)
   aboutMe            String?   @map("about_me") @db.Text
   favouriteQuotation String?   @map("favourite_quotation") @db.Text

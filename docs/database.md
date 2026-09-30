@@ -6,13 +6,13 @@
 - `members`: one entry per participant, linked to one cadre.
 - `_prisma_migrations`: Prisma's record of migrations it has applied.
 
-The first migration is applied locally. Both application tables remain empty.
+The migration history defines the tables; use `db:status` to see which migrations have been applied locally. Both application tables remain empty until the roster import.
 
 ## Understand the model
 
-A UUID is the internal identity. FTC ID is the participant-facing number; it must be unique. Phone is also unique and stored in international format, e.g. `+880` followed by the Bangladesh national number without its leading zero. The database checks general international phone syntax, not whether a number exists or receives SMS.
+A UUID is the internal identity. FTC ID is the participant-facing number; it must be unique. The `phone` field stores the recorded WhatsApp contact as required, nonblank, unique text, without a phone-number format rule. A spreadsheet cell stored as a number is converted to text at import time; Excel may already have rounded its original digits. This raw field is not a verified login number; phone OTP will require a separately verified, usable number.
 
-Name, section, FTC ID, cadre, phone, education, university, email, blood group, and home district are required. BCS batch may be NULL when unknown; any known batch must be positive. About me, favourite quotation, photo key, and phone verification time may be NULL, meaning not provided. Missing required spreadsheet values must be resolved before import; do not invent them. Batch 43 is stored as 43; Flutter can display 43rd later.
+Name, section, FTC ID, cadre, phone, education, university, email, blood group, and home district are required. Phone and blood group accept nonblank free text, including entries that do not follow a standard format. BCS batch may be NULL when unknown; any known batch must be positive. About me, favourite quotation, photo key, and phone verification time may be NULL, meaning not provided. Missing required spreadsheet values must be resolved before import; do not invent them. Batch 43 is stored as 43; Flutter can display 43rd later.
 
 `profile_photo_key` stores a reference, not an image file or temporary signed URL. No photo storage provider is configured yet. `phone_verified_at` remains NULL until actual verification.
 
@@ -46,8 +46,8 @@ For a future model change, in your local development database only:
 
 If Prisma proposes a reset, stop and investigate; a reset erases data. No reset was needed for this initial migration.
 
-The migration contains SQL CHECK constraints that Prisma cannot declare directly. Preserve those checks when changing the relevant fields. `db:verify` checks defaults, uniqueness, relationships, phone/blood values and positive IDs/batches with synthetic rows and always rolls back its transaction.
+The migrations contain SQL CHECK constraints that Prisma cannot declare directly. Preserve those checks when changing the relevant fields. `db:verify` checks defaults, uniqueness, relationships, nonblank free-text phone/blood values, and positive IDs/batches with synthetic rows and always rolls back its transaction.
 
 ## Next step
 
-Validate the spreadsheet, identify missing required values and duplicate FTC IDs/phones, and produce an import preview. No spreadsheet data has been imported at this stage. Authentication and directory endpoints will follow in separate steps.
+Finish the read-only `All` sheet preview, retain phone and blood-group values without format normalization, and normalize only the fields with agreed rules. No spreadsheet data has been imported at this stage. Authentication and directory endpoints will follow in separate steps.

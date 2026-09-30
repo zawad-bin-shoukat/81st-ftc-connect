@@ -79,16 +79,22 @@ try {
   await rejects('INSERT INTO cadres (name) VALUES ($1)', ['Schema verification only'], '23505', 'cadres_name_key');
   await rejects('DELETE FROM cadres WHERE id = $1', [cadre.id], '23503', 'members_cadre_id_fkey');
   await rejects('UPDATE members SET cadre_id = $1 WHERE id = $2', ['00000000-0000-0000-0000-000000000000', member.id], '23503', 'members_cadre_id_fkey');
-  await rejects('UPDATE members SET phone = $1 WHERE id = $2', ['01700000000', member.id], '23514', 'members_phone_e164');
-  await rejects('UPDATE members SET blood_group = $1 WHERE id = $2', ['X+', member.id], '23514', 'members_blood_group_valid');
   await rejects('UPDATE members SET bcs_batch = 0 WHERE id = $1', [member.id], '23514', 'members_batch_positive');
   await rejects('UPDATE members SET ftc_id = 0 WHERE id = $1', [member.id], '23514', 'members_ftc_id_positive');
   await rejects('UPDATE members SET name = $1 WHERE id = $2', [' ', member.id], '23514', 'members_name_not_blank');
   await rejects('UPDATE members SET section = $1 WHERE id = $2', [' ', member.id], '23514', 'members_section_not_blank');
-  for (const blood of ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']) {
-    await client.query('UPDATE members SET blood_group = $1 WHERE id = $2', [blood, member.id]);
+  for (const [phone, blood] of [
+    ['০১৫১৫২৯২৩০০৬', 'A'],
+    ['162850249301534000000', 'A (Rh factor unknown)'],
+  ]) {
+    const { rows: [freeText] } = await client.query(
+      'UPDATE members SET phone = $1, blood_group = $2 WHERE id = $3 RETURNING phone, blood_group',
+      [phone, blood, member.id],
+    );
+    assert.equal(freeText.phone, phone);
+    assert.equal(freeText.blood_group, blood);
+    passed++;
   }
-  passed++;
   // Malformed email addresses must be rejected.
   const invalidEmails = [
     'not-an-email',
@@ -126,6 +132,7 @@ try {
     passed++;
   }
   const requiredFields = [
+    'phone',
     'education',
     'university',
     'email',
@@ -144,8 +151,10 @@ try {
   }
 
   const blankFields = [
+    ['phone', 'members_phone_not_blank'],
     ['education', 'members_education_not_blank'],
     ['university', 'members_university_not_blank'],
+    ['blood_group', 'members_blood_group_not_blank'],
     ['home_district', 'members_home_district_not_blank'],
   ];
 

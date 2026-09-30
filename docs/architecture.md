@@ -3,11 +3,11 @@
 Flutter (Android and iOS) → NestJS API → Prisma → PostgreSQL.
 The optional web target is a local preview aid. Mobile never connects directly to PostgreSQL.
 
-This repository contains starter apps and the first database migration for members and cadres. No authentication, directory, search, profile editing, photo storage, imports, admin panel, or member data have been implemented. The backend's `/` route is the generated Hello World check. The mobile starter is independent of the backend for now.
+This repository contains starter apps and database migrations for members and cadres. No authentication, directory, search, profile editing, photo storage, imports, admin panel, or member data have been implemented. The backend's `/` route is the generated Hello World check. The mobile starter is independent of the backend for now.
 
 ## Profile schema
 
-The conversation preview is the source for this agreement. The original spreadsheet has not been imported or re-analyzed in this setup task.
+The original spreadsheet has been reviewed, but no participant data has been imported.
 
 | PostgreSQL field       | Agreed shape                                                                                       |
 | ---------------------- | -------------------------------------------------------------------------------------------------- |
@@ -19,9 +19,9 @@ The conversation preview is the source for this agreement. The original spreadsh
 | bcs_batch              | SMALLINT, nullable when unknown; 43 displays as 43rd                                               |
 | education              | TEXT                                                                                               |
 | university             | VARCHAR(255)                                                                                       |
-| phone                  | VARCHAR(20), unique; international format (+ followed by up to 15 digits); normalize before import |
+| phone                  | TEXT, required and unique; keep the recorded WhatsApp contact without format rules                 |
 | email                  | VARCHAR(255); not agreed as unique                                                                 |
-| blood_group            | VARCHAR(3), canonical values such as B+                                                            |
+| blood_group            | TEXT, required; preserve the user's wording as entered                                            |
 | home_district          | VARCHAR(100)                                                                                       |
 | about_me               | TEXT                                                                                               |
 | favourite_quotation    | TEXT                                                                                               |
@@ -30,9 +30,9 @@ The conversation preview is the source for this agreement. The original spreadsh
 | phone_verified_at      | Timestamp, nullable                                                                                |
 | created_at, updated_at | Timezone-aware timestamps (millisecond precision)                                                  |
 
-The `cadres` lookup has a UUID primary key and a unique name (VARCHAR(100)). Members require FTC ID, name, section, cadre, phone, education, university, email, blood group, and home district. BCS batch may be NULL when unknown; any known batch must be positive. About me, favourite quotation, photo key, and phone verification time remain nullable. Email must pass the database format check, but it is not unique. `is_active` defaults to true; timestamps default to the current time. Prisma maintains `updated_at` on updates; raw SQL must set it explicitly. Cadre deletion is restricted while members refer to it. Phone syntax does not prove ownership or reachability; OTP verification comes later. Cadre labels must be normalized before insertion (uniqueness is case-sensitive). Spreadsheet submission Timestamp is not a core profile field. Keep batch numbers numeric and normalize blood groups/cadre labels during the future import.
+The `cadres` lookup has a UUID primary key and a unique name (VARCHAR(100)). Members require FTC ID, name, section, cadre, phone, education, university, email, blood group, and home district. Phone and blood group must contain nonblank text, but the database does not enforce a particular format. BCS batch may be NULL when unknown; any known batch must be positive. About me, favourite quotation, photo key, and phone verification time remain nullable. Email must pass the database format check, but it is not unique. `is_active` defaults to true; timestamps default to the current time. Prisma maintains `updated_at` on updates; raw SQL must set it explicitly. Cadre deletion is restricted while members refer to it. Raw WhatsApp contact text does not establish a usable or verified login number; OTP login will need a separately verified phone identity. Cadre labels must be normalized before insertion (uniqueness is case-sensitive). Spreadsheet submission Timestamp is not a core profile field. Keep batch numbers numeric; do not normalize phone or blood-group entries during import. Excel cells stored as numbers may already have lost their original digits.
 
-Later product scope: private directory for 580 approved participants; phone OTP login, view/search/filter members, edit own profile and photo. No public registration. OTP provider and photo storage remain undecided.
+Later product scope: private directory for approved participants in the final `All` sheet; verified-phone OTP login, view/search/filter members, edit own profile and photo. No public registration. OTP provider and photo storage remain undecided.
 
 ## Beginner workflow
 
@@ -44,4 +44,4 @@ Later product scope: private directory for 580 approved participants; phone OTP 
 
 When API calls are added later, Android emulators normally reach the Mac via `10.0.2.2`; an iOS simulator can use `127.0.0.1`; physical phones need the Mac's LAN address. The starter backend deliberately binds to loopback. Change binding and platform development-network configuration when device integration is implemented. No such integration exists yet.
 
-PostgreSQL CHECK constraints in the migration enforce positive FTC IDs/batches, nonblank names/sections, phone syntax, and the eight canonical blood groups. Prisma cannot express these CHECK constraints directly; preserve them in future migrations. The database does not enforce a fixed 580-row limit. Admission rules belong to the future import/authentication workflow.
+PostgreSQL CHECK constraints in the migrations enforce positive FTC IDs/batches and nonblank required text. Phone and blood group have no format restrictions. Prisma cannot express these CHECK constraints directly; preserve them in future migrations. The database does not enforce a fixed participant count. Admission rules belong to the future import/authentication workflow.
