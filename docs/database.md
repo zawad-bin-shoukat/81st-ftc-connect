@@ -6,7 +6,7 @@
 - `members`: one entry per participant, linked to one cadre.
 - `_prisma_migrations`: Prisma's record of migrations it has applied.
 
-The migration history defines the tables; use `db:status` to see which migrations have been applied locally. Both application tables remain empty until the roster import.
+The migration history defines the tables; use `db:status` to see which migrations have been applied locally. The local database now contains 553 imported members and 31 distinct stored cadre labels. The label count includes unusual source entries retained as requested; it is not a claim that there are 31 official cadres.
 
 ## Understand the model
 
@@ -27,7 +27,7 @@ From the project root:
 ./scripts/backend.sh db:studio
 ```
 
-Open the local address printed by Studio. Find `members` and `cadres`; both should contain zero rows. Do not enter real participant information manually yet. Press Control-C in Terminal to close Studio.
+Open the local address printed by Studio. The imported members and their linked cadre labels are now visible. Studio exposes private contact information, so keep it local. Press Control-C in Terminal to close Studio.
 
 ## What a migration does
 
@@ -48,6 +48,30 @@ If Prisma proposes a reset, stop and investigate; a reset erases data. No reset 
 
 The migrations contain SQL CHECK constraints that Prisma cannot declare directly. Preserve those checks when changing the relevant fields. `db:verify` checks defaults, uniqueness, relationships, nonblank free-text phone/blood values, and positive IDs/batches with synthetic rows and always rolls back its transaction.
 
+## Roster import
+
+Only the All worksheet is read. The original workbook is never written. The approved import has 560 participant submissions, 46 internal blank rows, seven repeated-submission groups, and 553 selected members.
+
+- Keep FTC 238 instead of 738 and FTC 805 instead of 850. For the other repeated submissions, select the newest timestamp (last worksheet row breaks a timestamp tie).
+- Add .com to the six approved incomplete Gmail addresses.
+- Store 43MS as batch 43; N/A and 4r become NULL.
+- Preserve phone and blood-group text, including Bengali digits, nonstandard formats, and whitespace. Numeric Excel cells are converted to text; any precision already lost in Excel cannot be recovered.
+- Preserve other profile text and numeric-looking names as source text. Trim email and section boundaries; normalize only recognized cadre labels. Unresolved labels such as BPATC, job titles, and unapproved misspellings remain as supplied.
+- Leave photo and phone verification fields NULL. Importing a contact does not verify a login identity.
+
+From the repository root:
+
+    ./scripts/backend.sh roster:preview -- '../../../All participants .xlsx'
+    ./scripts/backend.sh roster:import -- '../../../All participants .xlsx'
+
+Paths are resolved from apps/backend because the wrapper changes directory. The first command is read-only. The second exercises real database constraints inside a transaction and rolls back. Add --apply only to commit an import.
+
+Importing the same records again makes no changes. A conflicting existing profile aborts the transaction instead of being overwritten. A failure rolls back every new member and cadre from that run. The reviewed counts and corrections are checked before insertion; a changed source list requires review and an updated import policy.
+
+Private receipts in .local/roster-imports record the workbook SHA-256, selected worksheet rows, approved corrections, and import counts. They contain no contact values and are ignored by Git.
+
 ## Next step
 
-Finish the read-only `All` sheet preview, retain phone and blood-group values without format normalization, and normalize only the fields with agreed rules. No spreadsheet data has been imported at this stage. Authentication and directory endpoints will follow in separate steps.
+The local read APIs are described in docs/api.md. Account, invitation, code-challenge, session, and rate-limit tables now support the local authentication flow described in docs/authentication.md. Flutter uses these member sessions and can save its owner's profile. Implement real SMS verification and production deployment requirements before real member use.
+
+RegistrationRequest stores pending membership requests separately from Member and Account. Submitting a request grants no access. Local administrator approval validates a complete profile and creates a new Member atomically with the approval status; it does not modify existing roster entries. Direct roster-phone login creates the Account only after successful OTP verification.

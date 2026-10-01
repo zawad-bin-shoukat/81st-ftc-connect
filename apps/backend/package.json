@@ -26,7 +26,17 @@
     "db:deploy": "prisma migrate deploy",
     "db:status": "prisma migrate status",
     "db:studio": "prisma studio",
-    "db:verify": "node scripts/verify-schema.mjs"
+    "db:verify": "node scripts/verify-schema.mjs",
+    "roster:preview": "node scripts/preview-roster.mjs",
+    "roster:import": "node scripts/import-roster.mjs",
+    "test:roster": "node --test scripts/lib/roster.test.mjs",
+    "test:import": "node --test scripts/lib/import-roster.test.mjs",
+    "api:check": "node scripts/check-members-api.mjs",
+    "auth:setup": "node scripts/auth-local.mjs setup",
+    "auth:invite": "node scripts/auth-local.mjs invite",
+    "auth:code": "node scripts/auth-local.mjs code",
+    "auth:check": "node scripts/check-auth.mjs",
+    "registration:review": "node scripts/review-registration.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

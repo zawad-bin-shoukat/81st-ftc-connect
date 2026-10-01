@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import pg from 'pg';
+import { randomUUID } from 'node:crypto';
 
 // Synthetic rows are always rolled back. Run only against our local project DB.
 const url = new URL(process.env.DATABASE_URL);
@@ -10,6 +11,7 @@ assert.equal(url.pathname, '/ftc_connect');
 const client = new pg.Client({ connectionString: url.toString() });
 await client.connect();
 let passed = 0;
+const testContact = 'schema-test-' + randomUUID();
 async function rejects(sql, values, code, constraint, column) {
   await client.query('SAVEPOINT check_constraint');
   try {
@@ -50,7 +52,7 @@ try {
     'Synthetic verification member',
     cadre.id,
     43,
-    '+12025550101',
+    testContact,
     'BSc',
     'Example University',
     'schema.test@example.com',
@@ -71,7 +73,7 @@ try {
   passed++;
   await rejects(
     insert,
-    [...values.slice(0, 5), '+12025550102', ...values.slice(6)],
+    [...values.slice(0, 5), testContact + '-other', ...values.slice(6)],
     '23505',
     'members_ftc_id_key',
   );
@@ -84,8 +86,8 @@ try {
   await rejects('UPDATE members SET name = $1 WHERE id = $2', [' ', member.id], '23514', 'members_name_not_blank');
   await rejects('UPDATE members SET section = $1 WHERE id = $2', [' ', member.id], '23514', 'members_section_not_blank');
   for (const [phone, blood] of [
-    ['০১৫১৫২৯২৩০০৬', 'A'],
-    ['162850249301534000000', 'A (Rh factor unknown)'],
+    ['০১২৩৪৫৬৭৮৯ ' + testContact, 'A'],
+    ['123456789012345678901 ' + testContact, 'A (Rh factor unknown)'],
   ]) {
     const { rows: [freeText] } = await client.query(
       'UPDATE members SET phone = $1, blood_group = $2 WHERE id = $3 RETURNING phone, blood_group',

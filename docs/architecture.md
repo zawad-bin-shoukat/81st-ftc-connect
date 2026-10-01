@@ -3,11 +3,13 @@
 Flutter (Android and iOS) → NestJS API → Prisma → PostgreSQL.
 The optional web target is a local preview aid. Mobile never connects directly to PostgreSQL.
 
-This repository contains starter apps and database migrations for members and cadres. No authentication, directory, search, profile editing, photo storage, imports, admin panel, or member data have been implemented. The backend's `/` route is the generated Hello World check. The mobile starter is independent of the backend for now.
+The local PostgreSQL database contains 553 members imported from the approved All worksheet. NestJS exposes paginated member search, filter options, member detail, and authenticated self-profile updates through Prisma. Existing members authenticate directly with a uniquely matching roster phone number and local test code. New members submit registration requests and require administrator approval before joining the roster. Persistent sessions are revocable. The original server-only developer credential remains limited to directory reads.
+
+Flutter now loads the real directory after sign-in and saves profile changes through the API. The optional interface preview remains fictional and separate. All login codes currently use local test delivery, with no SMS sent and no real phone-possession claim. Local auth is disabled outside development. Production SMS, account recovery, and photo storage remain pending. See docs/authentication.md and docs/api.md.
 
 ## Profile schema
 
-The original spreadsheet has been reviewed, but no participant data has been imported.
+The original workbook remains unchanged. Its 560 submissions produced 553 members after the seven approved repeated-submission groups were resolved. Two BCS batches remain unknown.
 
 | PostgreSQL field       | Agreed shape                                                                                       |
 | ---------------------- | -------------------------------------------------------------------------------------------------- |
@@ -42,6 +44,10 @@ Later product scope: private directory for approved participants in the final `A
 4. Keep `.env`, local databases, uploaded spreadsheets, phone numbers, and photos out of Git.
 5. Use `git status`, `git diff`, then stage specific files and commit with a short description.
 
-When API calls are added later, Android emulators normally reach the Mac via `10.0.2.2`; an iOS simulator can use `127.0.0.1`; physical phones need the Mac's LAN address. The starter backend deliberately binds to loopback. Change binding and platform development-network configuration when device integration is implemented. No such integration exists yet.
+The authenticated Flutter client uses 10.0.2.2 for the Android emulator and 127.0.0.1 for the iOS simulator. The backend remains loopback-only for local testing. Physical-phone and production deployment require explicit host/TLS configuration. Debug Android networking permits HTTP only to local development hosts; release clients require HTTPS.
 
 PostgreSQL CHECK constraints in the migrations enforce positive FTC IDs/batches and nonblank required text. Phone and blood group have no format restrictions. Prisma cannot express these CHECK constraints directly; preserve them in future migrations. The database does not enforce a fixed participant count. Admission rules belong to the future import/authentication workflow.
+
+### Updated membership flow (2026-10-01)
+
+Existing active roster members can enroll directly through a uniquely matched contact and OTP; invitations are only an administrator-assisted exception. Existing Account.loginPhone values remain authoritative after enrollment. Raw profile contact text is preserved, and matching is repeated at verification. New registration requests are stored separately and require local administrator approval before a roster member is created. There is no public approval route. See authentication.md for the review workflow and remaining SMS requirements.
