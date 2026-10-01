@@ -48,6 +48,6 @@ Directory summaries contain id, ftcId, name, section, cadre, bcsBatch, and homeD
 
 ## Pending integration
 
-Direct roster-phone enrollment with local test codes, session expiry/revocation, member-session directory access, and PATCH /me are implemented. Flutter uses these sessions rather than the developer credential. Real SMS phone verification, account recovery, and photo storage remain pending. POST /auth/registration records pending membership requests but grants no access; approval is only available through the local administrator CLI. There is no endpoint to edit other members.
+Direct roster-phone enrollment with local test codes or configured sms.bd delivery, session expiry/revocation, member-session directory access, and PATCH /me are implemented. Flutter uses these sessions rather than the developer credential. One real-phone SMS login and returning login have succeeded locally; broader carrier/device testing, account recovery, and photo storage remain pending. POST /auth/registration records pending membership requests but grants no access; approval is only available through the local administrator CLI. There is no endpoint to edit other members.
 
 Implementation references: [NestJS guards](https://docs.nestjs.com/guards) and [Prisma reading data](https://www.prisma.io/docs/orm/fundamentals/reading-data).

@@ -138,7 +138,16 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Card(
+            if (_challenge['deliveryMode'] == 'sms')
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'We sent a verification code by SMS to this number. Codes expire after 5 minutes. If it does not arrive, check the number or request another code.',
+                  ),
+                ),
+              )
+            else Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(

@@ -4,20 +4,28 @@ import {
 } from '@nestjs/common';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 
-export function localAuthConfig() {
+export function authConfig(): { mode: 'local' | 'sms'; secret: string } {
+  const mode = process.env.OTP_MODE;
   if (
-    process.env.NODE_ENV !== 'development' ||
-    process.env.OTP_MODE !== 'local' ||
+    (mode !== 'local' && mode !== 'sms') ||
+    (mode === 'local' && process.env.NODE_ENV !== 'development') ||
+    (mode === 'sms' && !process.env.SMS_BD_API_KEY?.trim()) ||
     !/^[a-f0-9]{64}$/.test(process.env.AUTH_OTP_SECRET ?? '')
   ) {
     throw new ServiceUnavailableException('Phone login is not configured.');
   }
-  return process.env.AUTH_OTP_SECRET!;
+  return { mode, secret: process.env.AUTH_OTP_SECRET! };
+}
+export function localAuthConfig() {
+  const config = authConfig();
+  if (config.mode !== 'local')
+    throw new ServiceUnavailableException('Local test codes are disabled.');
+  return config.secret;
 }
 export const digest = (value: string) =>
   createHash('sha256').update(value).digest('hex');
 export const codeDigest = (id: string, code: string) =>
-  createHmac('sha256', localAuthConfig())
+  createHmac('sha256', authConfig().secret)
     .update(id + ':' + code)
     .digest('hex');
 export const equalHash = (a: string, b: string) =>

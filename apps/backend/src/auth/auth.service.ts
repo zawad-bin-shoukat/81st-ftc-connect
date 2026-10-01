@@ -3,6 +3,7 @@ import {
   HttpException,
   Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
@@ -12,19 +13,22 @@ import {
   codeDigest,
   digest,
   equalHash,
-  localAuthConfig,
+  authConfig,
   loginPhone,
   rosterPhone,
   objectBody,
   stringField,
 } from './auth-input.js';
 import { LocalOtpDelivery } from './local-otp.delivery.js';
+import { SmsBdDelivery } from './sms-bd.delivery.js';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(LocalOtpDelivery) private readonly delivery: LocalOtpDelivery,
+    @Inject(LocalOtpDelivery) private readonly localDelivery: LocalOtpDelivery,
+    @Inject(SmsBdDelivery) private readonly smsDelivery: SmsBdDelivery,
   ) {}
 
   // Count all matching contacts, including inactive/claimed records: never guess.
@@ -65,7 +69,7 @@ export class AuthService {
   }
 
   async start(body: unknown, purpose: 'claim' | 'login', peer: string) {
-    localAuthConfig();
+    const { mode } = authConfig();
     await this.throttle('start-ip', peer, 30);
     const input = objectBody(
       body,
@@ -106,7 +110,10 @@ export class AuthService {
         where: { loginPhone: phone },
         include: { member: true },
       });
-      if (account?.member.isActive && account.verificationMethod === 'local') {
+      if (
+        account?.member.isActive &&
+        (mode === 'sms' || account.verificationMethod === 'local')
+      ) {
         memberId = account.memberId;
       } else if (!account) {
         memberId = await this.rosterMatch(this.prisma, phone);
@@ -129,6 +136,7 @@ export class AuthService {
           id,
           phone,
           purpose,
+          deliveryMode: mode,
           memberId,
           inviteId,
           codeHash: codeDigest(id, code),
@@ -138,28 +146,27 @@ export class AuthService {
     });
     if (memberId) {
       try {
-        await this.delivery.deliver(id, code, expiresAt);
+        if (mode === 'sms') await this.smsDelivery.deliver(phone, code);
+        else await this.localDelivery.deliver(id, code, expiresAt);
       } catch {
         await this.prisma.otpChallenge.update({
           where: { id },
           data: { consumedAt: new Date() },
         });
-        throw new HttpException(
-          'Code delivery is unavailable. Please try again later.',
-          503,
-        );
+        // Keep the public response identical for unknown and eligible phones.
+        this.logger.error('OTP delivery failed; challenge invalidated.');
       }
     }
     return {
       challengeId: id,
       expiresAt,
       retryAfterSeconds: 60,
-      deliveryMode: 'local',
+      deliveryMode: mode,
     };
   }
 
   async verify(body: unknown, peer: string) {
-    localAuthConfig();
+    const { mode } = authConfig();
     await this.throttle('verify-ip', peer, 60);
     const input = objectBody(body, ['challengeId', 'code']);
     const id = stringField(input.challengeId, 'verification request', 36);
@@ -186,6 +193,7 @@ export class AuthService {
         });
         if (
           !challenge ||
+          challenge.deliveryMode !== mode ||
           challenge.consumedAt ||
           challenge.expiresAt <= new Date() ||
           challenge.attempts >= 5
@@ -224,7 +232,8 @@ export class AuthService {
             data: {
               memberId: challenge.memberId!,
               loginPhone: challenge.phone,
-              verificationMethod: 'local',
+              verificationMethod: mode,
+              verifiedAt: mode === 'sms' ? new Date() : null,
             },
           });
           await tx.claimInvite.updateMany({
@@ -255,16 +264,35 @@ export class AuthService {
             data: {
               memberId: challenge.memberId!,
               loginPhone: challenge.phone,
-              verificationMethod: 'local',
+              verificationMethod: mode,
+              verifiedAt: mode === 'sms' ? new Date() : null,
             },
           });
         }
         if (
           !account ||
           account.loginPhone !== challenge.phone ||
-          account.verificationMethod !== 'local'
+          (mode === 'local' && account.verificationMethod !== 'local')
         )
           return null;
+        if (mode === 'sms') {
+          if (account.verificationMethod !== 'sms') {
+            await tx.account.update({
+              where: { id: account.id },
+              data: { verificationMethod: 'sms', verifiedAt: new Date() },
+            });
+            // Local test sessions must not inherit real SMS verification.
+            await tx.authSession.updateMany({
+              where: { accountId: account.id, revokedAt: null },
+              data: { revokedAt: new Date() },
+            });
+          }
+          if (rosterPhone(challenge.member.phone) === challenge.phone)
+            await tx.member.update({
+              where: { id: challenge.member.id },
+              data: { phoneVerifiedAt: new Date() },
+            });
+        }
         await tx.otpChallenge.update({
           where: { id },
           data: { consumedAt: new Date() },
@@ -286,13 +314,13 @@ export class AuthService {
       throw new UnauthorizedException(
         'Code is invalid, expired, or no longer usable.',
       );
-    return { token, expiresAt, memberId, deliveryMode: 'local' };
+    return { token, expiresAt, memberId, deliveryMode: mode };
   }
 
   async authenticate(authorization?: string) {
     if (!authorization?.match(/^Bearer [A-Za-z0-9_-]{43}$/))
       throw new UnauthorizedException('Please sign in.');
-    localAuthConfig();
+    const { mode } = authConfig();
     const tokenHash = digest(authorization.slice(7));
     const session = await this.prisma.authSession.findUnique({
       where: { tokenHash },
@@ -303,7 +331,8 @@ export class AuthService {
       session.revokedAt ||
       session.expiresAt <= new Date() ||
       !session.account.member.isActive ||
-      session.account.verificationMethod !== 'local'
+      (mode === 'local' && session.account.verificationMethod !== 'local') ||
+      (mode === 'sms' && session.account.verificationMethod !== 'sms')
     ) {
       throw new UnauthorizedException(
         'Your session has ended. Please sign in.',

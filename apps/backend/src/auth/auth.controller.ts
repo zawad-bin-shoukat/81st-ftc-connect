@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { RegistrationService } from './registration.service.js';
-import { localAuthConfig } from './auth-input.js';
+import { authConfig } from './auth-input.js';
 import type { Request } from 'express';
 import { AuthService } from './auth.service.js';
 import { SessionGuard } from './session.guard.js';
@@ -26,7 +26,7 @@ export class AuthController {
   @HttpCode(202)
   @Header('Cache-Control', 'no-store')
   async register(@Body() body: unknown, @Req() request: Request) {
-    localAuthConfig();
+    authConfig();
     await this.auth.throttle(
       'registration-ip',
       request.socket.remoteAddress ?? 'unknown',

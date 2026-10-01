@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../dist/app.module.js';
 import { RegistrationService } from '../dist/auth/registration.service.js';
+import { SmsBdDelivery } from '../dist/auth/sms-bd.delivery.js';
 import { PrismaService } from '../dist/database/prisma.service.js';
 
 // All mutation tests use a brand-new disposable DB, never the imported roster.
@@ -510,6 +511,151 @@ try {
     (await call('GET', '/me', undefined, approvedLogin.data.token)).data
       .ftcId === 808,
     'Approved member linked to wrong profile.',
+  );
+
+  // Exercise SMS mode without contacting the provider or changing real members.
+  await resetLimits();
+  const localBeforeSms = await call('POST', '/auth/login', {
+    phone: '+12025550101',
+  });
+  const localSession = await verify(
+    localBeforeSms.data.challengeId,
+    await readCode(localBeforeSms.data.challengeId),
+  );
+  check(localSession.status === 200, 'Local session setup failed.');
+  await resetLimits();
+  const oldLocal = await call('POST', '/auth/login', { phone: '+12025550101' });
+  const oldLocalCode = await readCode(oldLocal.data.challengeId);
+  process.env.OTP_MODE = 'sms';
+  process.env.SMS_BD_API_KEY = 'synthetic-test-key';
+  const originalFetch = globalThis.fetch;
+  const provider = new SmsBdDelivery();
+  let providerPayload;
+  try {
+    globalThis.fetch = async (url, options) => {
+      providerPayload = { url, ...options };
+      return new Response(JSON.stringify({ error: 0, data: { request_id: 1 } }), {
+        status: 200,
+      });
+    };
+    await provider.deliver('+8801712345678', '123456');
+    check(
+      providerPayload.url === 'https://api.sms.net.bd/sendsms' &&
+        providerPayload.method === 'POST' &&
+        JSON.parse(providerPayload.body).to === '8801712345678' &&
+        JSON.parse(providerPayload.body).api_key === 'synthetic-test-key' &&
+        JSON.parse(providerPayload.body).msg.includes('123456'),
+      'SMS provider request is incorrect.',
+    );
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: 417, msg: 'Insufficient balance' }), {
+        status: 200,
+      });
+    await assert.rejects(provider.deliver('+8801712345678', '123456'));
+    checks++;
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  check(
+    (await verify(oldLocal.data.challengeId, oldLocalCode)).status === 401,
+    'A local code worked after switching to SMS mode.',
+  );
+  const sent = new Map();
+  app.get(SmsBdDelivery).deliver = async (phone, code) => sent.set(phone, code);
+  await resetLimits();
+  const smsStart = await call('POST', '/auth/login', { phone: '+12025550101' });
+  check(
+    smsStart.status === 200 && smsStart.data.deliveryMode === 'sms',
+    'SMS mode did not start.',
+  );
+  check(sent.has('+12025550101'), 'Eligible account did not receive SMS.');
+  const smsLogin = await verify(
+    smsStart.data.challengeId,
+    sent.get('+12025550101'),
+  );
+  check(smsLogin.status === 200, 'SMS challenge did not verify.');
+  const upgraded = await db.account.findUnique({ where: { memberId: first.id } });
+  check(
+    upgraded.verificationMethod === 'sms' && upgraded.verifiedAt !== null,
+    'Local account was not reverified through SMS.',
+  );
+  check(
+    (await call('GET', '/me', undefined, localSession.data.token)).status === 401,
+    'Old local session survived SMS verification.',
+  );
+  check(
+    (await call('GET', '/me', undefined, smsLogin.data.token)).status === 200,
+    'SMS session cannot read its profile.',
+  );
+  process.env.NODE_ENV = 'production';
+  check(
+    (await call('GET', '/me', undefined, smsLogin.data.token)).status === 200,
+    'SMS session was disabled in production mode.',
+  );
+  process.env.NODE_ENV = 'development';
+  process.env.OTP_MODE = 'local';
+  check(
+    (await call('GET', '/me', undefined, smsLogin.data.token)).status === 401,
+    'SMS session worked in local-only mode.',
+  );
+  process.env.OTP_MODE = 'sms';
+  const seventh = await member(7);
+  await db.member.update({
+    where: { id: seventh.id },
+    data: { phone: '01712345000' },
+  });
+  await resetLimits();
+  const directSms = await call('POST', '/auth/login', { phone: '01712345000' });
+  check(
+    directSms.data.deliveryMode === 'sms' && sent.has('+8801712345000'),
+    'Direct roster SMS was not sent.',
+  );
+  const directSmsLogin = await verify(
+    directSms.data.challengeId,
+    sent.get('+8801712345000'),
+  );
+  check(directSmsLogin.status === 200, 'Direct roster SMS did not verify.');
+  check(
+    (await db.member.findUnique({ where: { id: seventh.id } })).phoneVerifiedAt !==
+      null,
+    'Verified roster contact was not marked verified.',
+  );
+  await call(
+    'PATCH',
+    '/me',
+    { phone: 'Another display contact' },
+    directSmsLogin.data.token,
+  );
+  check(
+    (await db.member.findUnique({ where: { id: seventh.id } }))
+      .phoneVerifiedAt === null,
+    'Changing the display contact retained its old verification.',
+  );
+  await resetLimits();
+  const noSms = await call('POST', '/auth/login', { phone: '+12025550999' });
+  check(
+    noSms.data.deliveryMode === 'sms' && !sent.has('+12025550999'),
+    'Unknown phone received an SMS.',
+  );
+  const eighth = await member(8);
+  await db.member.update({
+    where: { id: eighth.id },
+    data: { phone: '01912345000' },
+  });
+  app.get(SmsBdDelivery).deliver = async () => {
+    throw new Error('Synthetic provider failure');
+  };
+  await resetLimits();
+  check(
+    (await call('POST', '/auth/login', { phone: '01912345000' })).status ===
+      200,
+    'Provider failure disclosed an eligible phone.',
+  );
+  check(
+    (await db.otpChallenge.findFirst({
+      where: { phone: '+8801912345000' },
+    })).consumedAt !== null,
+    'Failed delivery left a usable challenge.',
   );
 
   console.log(

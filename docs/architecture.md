@@ -5,7 +5,7 @@ The optional web target is a local preview aid. Mobile never connects directly t
 
 The local PostgreSQL database contains 553 members imported from the approved All worksheet. NestJS exposes paginated member search, filter options, member detail, and authenticated self-profile updates through Prisma. Existing members authenticate directly with a uniquely matching roster phone number and local test code. New members submit registration requests and require administrator approval before joining the roster. Persistent sessions are revocable. The original server-only developer credential remains limited to directory reads.
 
-Flutter now loads the real directory after sign-in and saves profile changes through the API. The optional interface preview remains fictional and separate. All login codes currently use local test delivery, with no SMS sent and no real phone-possession claim. Local auth is disabled outside development. Production SMS, account recovery, and photo storage remain pending. See docs/authentication.md and docs/api.md.
+Flutter now loads the real directory after sign-in and saves profile changes through the API. The optional interface preview remains fictional and separate. Login codes use local test delivery by default; sms.bd delivery is implemented and has passed one real-phone login and returning-login test. The provider key lives only in the ignored local environment file. Broader carrier/device testing, account recovery, and photo storage remain pending. Local auth is disabled outside development. See docs/authentication.md and docs/api.md.
 
 ## Profile schema
 
@@ -34,7 +34,7 @@ The original workbook remains unchanged. Its 560 submissions produced 553 member
 
 The `cadres` lookup has a UUID primary key and a unique name (VARCHAR(100)). Members require FTC ID, name, section, cadre, phone, education, university, email, blood group, and home district. Phone and blood group must contain nonblank text, but the database does not enforce a particular format. BCS batch may be NULL when unknown; any known batch must be positive. About me, favourite quotation, photo key, and phone verification time remain nullable. Email must pass the database format check, but it is not unique. `is_active` defaults to true; timestamps default to the current time. Prisma maintains `updated_at` on updates; raw SQL must set it explicitly. Cadre deletion is restricted while members refer to it. Raw WhatsApp contact text does not establish a usable or verified login number; OTP login will need a separately verified phone identity. Cadre labels must be normalized before insertion (uniqueness is case-sensitive). Spreadsheet submission Timestamp is not a core profile field. Keep batch numbers numeric; do not normalize phone or blood-group entries during import. Excel cells stored as numbers may already have lost their original digits.
 
-Later product scope: private directory for approved participants in the final `All` sheet; verified-phone OTP login, view/search/filter members, edit own profile and photo. No public registration. OTP provider and photo storage remain undecided.
+Later product scope: private directory for approved participants in the final `All` sheet; verified-phone OTP login, view/search/filter members, edit own profile and photo. No public registration. sms.bd was selected for OTP delivery and tested on one phone; broader delivery testing remains. Photo storage remains undecided.
 
 ## Beginner workflow
 

@@ -26,6 +26,8 @@ export class MembersService {
 
   async updateOwn(memberId: string, body: unknown) {
     const data = profileInput(body);
+    // A changed display contact is not covered by the earlier SMS verification.
+    if (data.phone !== undefined) data.phoneVerifiedAt = null;
     try {
       await this.prisma.member.update({
         where: { id: memberId, isActive: true },
