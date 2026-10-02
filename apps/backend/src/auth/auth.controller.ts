@@ -8,6 +8,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { TestAccountService } from './test-account.service.js';
 import { RegistrationService } from './registration.service.js';
 import { authConfig } from './auth-input.js';
 import type { Request } from 'express';
@@ -19,9 +20,29 @@ import type { MemberRequest } from './session.guard.js';
 export class AuthController {
   constructor(
     @Inject(AuthService) private readonly auth: AuthService,
+    @Inject(TestAccountService)
+    private readonly testAccounts: TestAccountService,
     @Inject(RegistrationService)
     private readonly registrations: RegistrationService,
   ) {}
+  @Post('test/login')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  testLogin(@Body() body: unknown, @Req() request: Request) {
+    return this.testAccounts.start(
+      body,
+      request.socket.remoteAddress ?? 'unknown',
+    );
+  }
+  @Post('test/verify')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  testVerify(@Body() body: unknown, @Req() request: Request) {
+    return this.testAccounts.verify(
+      body,
+      request.socket.remoteAddress ?? 'unknown',
+    );
+  }
   @Post('registration')
   @HttpCode(202)
   @Header('Cache-Control', 'no-store')

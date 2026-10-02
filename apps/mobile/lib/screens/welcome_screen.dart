@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'phone_sign_in_screen.dart';
 import 'preview_shell.dart';
+import 'test_sign_in_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -63,9 +64,17 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                     child: const Text('Explore interface preview'),
                   ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const TestSignInScreen(),
+                      ),
+                    ),
+                    child: const Text('Administrator / test sign-in'),
+                  ),
                   const SizedBox(height: 16),
                   Text(
-                    'Sign in to view the real roster. Interface preview uses fictional profiles. Local test codes are available on your Mac; no SMS is sent.',
+                    'Sign in to view the real roster. Interface preview uses fictional profiles.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),

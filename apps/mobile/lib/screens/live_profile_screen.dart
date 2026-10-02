@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api_client.dart';
 import '../contact_actions.dart';
+import 'membership_review_screen.dart';
 
 String ordinalBatch(dynamic value) {
   if (value == null) return 'Unknown';
@@ -55,7 +56,9 @@ class _LiveProfileScreenState extends State<LiveProfileScreen> {
       ),
     );
     if (changed == true && mounted) {
-      setState(() => _profile = _fetch());
+      setState(() {
+        _profile = _fetch();
+      });
       widget.onUpdated?.call();
     }
   }
@@ -76,7 +79,9 @@ class _LiveProfileScreenState extends State<LiveProfileScreen> {
               children: [
                 Text(snapshot.error.toString(), textAlign: TextAlign.center),
                 TextButton(
-                  onPressed: () => setState(() => _profile = _fetch()),
+                  onPressed: () => setState(() {
+                    _profile = _fetch();
+                  }),
                   child: const Text('Retry'),
                 ),
               ],
@@ -86,7 +91,8 @@ class _LiveProfileScreenState extends State<LiveProfileScreen> {
       }
       final data = snapshot.data!;
       final rows = <String, String>{
-        'FTC ID': data['ftcId'].toString(),
+        data['isTestAccount'] == true ? 'Test ID' : 'FTC ID': data['ftcId']
+            .toString(),
         'Section': data['section'] as String,
         'Cadre': data['cadre']['name'] as String,
         'BCS batch': ordinalBatch(data['bcsBatch']),
@@ -110,6 +116,15 @@ class _LiveProfileScreenState extends State<LiveProfileScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              if (data['isTestAccount'] == true)
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Separate test profile. You are not signed in as a real participant.',
+                    ),
+                  ),
+                ),
               const Icon(Icons.account_circle_outlined, size: 88),
               Text(
                 data['name'] as String,
@@ -123,6 +138,20 @@ class _LiveProfileScreenState extends State<LiveProfileScreen> {
                   icon: const Icon(Icons.edit_outlined),
                   label: const Text('Edit my profile'),
                 ),
+                if (data['isAdministrator'] == true)
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              MembershipReviewScreen(api: widget.api),
+                        ),
+                      );
+                      if (mounted) widget.onUpdated?.call();
+                    },
+                    icon: const Icon(Icons.fact_check_outlined),
+                    label: const Text('Review membership requests'),
+                  ),
               ],
               const SizedBox(height: 16),
               for (final entry in rows.entries)
@@ -229,8 +258,10 @@ class _LiveEditProfileState extends State<LiveEditProfile> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Text(
-                'Your login number is separate from your WhatsApp contact. FTC ID, section and cadre are managed by the roster administrator.',
+              Text(
+                widget.member['isTestAccount'] == true
+                    ? 'These edits affect only your separate test profile. Your verified login number and test ID cannot be changed here.'
+                    : 'Your login number is separate from your WhatsApp contact. FTC ID, section and cadre are managed by the roster administrator.',
               ),
               const SizedBox(height: 16),
               for (final entry in labels.entries)

@@ -8,7 +8,12 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
 
 export type MemberRequest = Request & {
-  auth: { memberId: string; tokenHash: string; loginPhone: string };
+  auth: {
+    memberId: string | null;
+    testAccountId: string | null;
+    tokenHash: string;
+    loginPhone: string;
+  };
 };
 
 @Injectable()

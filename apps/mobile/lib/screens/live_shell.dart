@@ -43,9 +43,13 @@ class _LiveShellState extends State<LiveShell> {
     ),
     body: Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text('Local test login · real roster'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            widget.api.isTestAccount
+                ? 'Test account · outside the participant roster'
+                : 'Private directory · 81st FTC members',
+          ),
         ),
         Expanded(
           child: IndexedStack(

@@ -7,7 +7,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../dist/app.module.js';
-import { RegistrationService } from '../dist/auth/registration.service.js';
 import { SmsBdDelivery } from '../dist/auth/sms-bd.delivery.js';
 import { PrismaService } from '../dist/database/prisma.service.js';
 
@@ -53,6 +52,8 @@ try {
   process.env.AUTH_OTP_SECRET = randomBytes(32).toString('hex');
   process.env.LOCAL_OTP_DIR = outbox;
   delete process.env.LOCAL_API_TOKEN;
+  delete process.env.ADMIN_FTC_IDS;
+  delete process.env.TEST_ADMIN_ENABLED;
   app = await NestFactory.create(AppModule, {
     logger: false,
     abortOnError: false,
@@ -485,7 +486,11 @@ try {
   const pending = await db.registrationRequest.findFirst({
     where: { ftcId: 808 },
   });
-  await new RegistrationService(db).approve(pending.id, {
+  // Review routes require a live member session AND server-configured authority.
+  const protectedMembers = JSON.stringify(
+    await db.member.findMany({ orderBy: { ftcId: 'asc' } }),
+  );
+  const adminProfile = {
     section: 'A',
     cadreId: cadre.id,
     education: 'Degree',
@@ -494,7 +499,304 @@ try {
     bloodGroup: 'Unknown',
     homeDistrict: 'District',
     bcsBatch: null,
+  };
+  const approvalBody = {
+    profile: adminProfile,
+    reviewNote: 'Verified against synthetic authoritative roster.',
+    membershipConfirmed: true,
+  };
+  check(
+    (await call('GET', '/admin/registrations')).status === 401,
+    'Anonymous caller read membership requests.',
+  );
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${pending.id}/approve`,
+        approvalBody,
+      )
+    ).status === 401,
+    'Anonymous caller approved a request.',
+  );
+  check(
+    (await call('GET', '/admin/registrations', undefined, directToken))
+      .status === 403,
+    'Empty administrator config allowed access.',
+  );
+  process.env.ADMIN_FTC_IDS = '4,broken';
+  check(
+    (await call('GET', '/admin/registrations', undefined, directToken))
+      .status === 403,
+    'Malformed administrator config allowed access.',
+  );
+  process.env.ADMIN_FTC_IDS = '4';
+  check(
+    (await call('GET', '/me', undefined, directToken)).data.isAdministrator ===
+      true,
+    'Administrator capability absent from own profile.',
+  );
+  check(
+    (
+      await call(
+        'GET',
+        '/admin/registrations?status=pending',
+        undefined,
+        directToken,
+      )
+    ).data.items.some((r) => r.id === pending.id),
+    'Pending queue missing request.',
+  );
+  check(
+    (
+      await call(
+        'GET',
+        '/admin/registrations?status=bad',
+        undefined,
+        directToken,
+      )
+    ).status === 400,
+    'Invalid review status accepted.',
+  );
+  check(
+    (await call('GET', '/admin/registrations?page=1.5', undefined, directToken))
+      .status === 400,
+    'Invalid review page accepted.',
+  );
+  check(
+    (
+      await call(
+        'GET',
+        '/admin/registrations/not-a-uuid',
+        undefined,
+        directToken,
+      )
+    ).status === 400,
+    'Invalid request ID accepted.',
+  );
+  check(
+    (
+      await call(
+        'GET',
+        `/admin/registrations/${pending.id}`,
+        undefined,
+        directToken,
+      )
+    ).data.cadres.some((c) => c.id === cadre.id),
+    'Review details omitted cadre options.',
+  );
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${pending.id}/approve`,
+        { ...approvalBody, membershipConfirmed: false },
+        directToken,
+      )
+    ).status === 400,
+    'Approval without membership confirmation accepted.',
+  );
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${pending.id}/approve`,
+        { ...approvalBody, reviewNote: ' ' },
+        directToken,
+      )
+    ).status === 400,
+    'Approval without review note accepted.',
+  );
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${pending.id}/approve`,
+        { ...approvalBody, profile: { ...adminProfile, email: 'bad' } },
+        directToken,
+      )
+    ).status === 400,
+    'Invalid approved email accepted.',
+  );
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${pending.id}/approve`,
+        {
+          ...approvalBody,
+          profile: {
+            ...adminProfile,
+            cadreId: '00000000-0000-0000-0000-000000000000',
+          },
+        },
+        directToken,
+      )
+    ).status === 400,
+    'Unknown cadre accepted.',
+  );
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${pending.id}/approve`,
+        { ...approvalBody, reviewedByMemberId: second.id },
+        directToken,
+      )
+    ).status === 400,
+    'Client supplied review actor accepted.',
+  );
+  check(
+    !(await db.member.findUnique({ where: { ftcId: 808 } })),
+    'Failed validation added a roster record.',
+  );
+  const concurrentApprovals = await Promise.all(
+    [1, 2].map(() =>
+      call(
+        'POST',
+        `/admin/registrations/${pending.id}/approve`,
+        approvalBody,
+        directToken,
+      ),
+    ),
+  );
+  check(
+    concurrentApprovals.filter((r) => r.status === 201).length === 1 &&
+      concurrentApprovals.filter((r) => r.status === 409).length === 1,
+    'Concurrent reviews did not produce one approval and one conflict: ' +
+      JSON.stringify(concurrentApprovals),
+  );
+  check(
+    (await db.account.count({ where: { loginPhone: requestedPhone } })) === 0,
+    'Approval created an account without OTP.',
+  );
+  const reviewed = (
+    await call(
+      'GET',
+      `/admin/registrations/${pending.id}`,
+      undefined,
+      directToken,
+    )
+  ).data.request;
+  check(
+    reviewed.reviewedBy.ftcId === 4 &&
+      reviewed.reviewNote === approvalBody.reviewNote &&
+      reviewed.reviewedAt,
+    'Approval audit lost actor, note or time.',
+  );
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${pending.id}/reject`,
+        { reviewNote: 'Too late' },
+        directToken,
+      )
+    ).status === 409,
+    'Approved request was rejected later.',
+  );
+  check(
+    JSON.stringify(
+      await db.member.findMany({
+        where: { ftcId: { not: 808 } },
+        orderBy: { ftcId: 'asc' },
+      }),
+    ) === protectedMembers,
+    'Review changed an existing participant.',
+  );
+  const rejected = await db.registrationRequest.create({
+    data: {
+      name: 'Rejected synthetic applicant',
+      ftcId: 809,
+      phone: '+12025550809',
+      evidence: 'Synthetic',
+    },
   });
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${rejected.id}/reject`,
+        { reviewNote: '' },
+        directToken,
+      )
+    ).status === 400,
+    'Blank rejection reason accepted.',
+  );
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${rejected.id}/reject`,
+        { reviewNote: 'Membership could not be confirmed.' },
+        directToken,
+      )
+    ).status === 201,
+    'Rejection failed.',
+  );
+  check(
+    !(await db.member.findUnique({ where: { ftcId: 809 } })),
+    'Rejection created a member.',
+  );
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${rejected.id}/approve`,
+        approvalBody,
+        directToken,
+      )
+    ).status === 409,
+    'Rejected request was approved later.',
+  );
+  check(
+    (
+      await call(
+        'GET',
+        '/admin/registrations?status=rejected',
+        undefined,
+        directToken,
+      )
+    ).data.items.some((r) => r.id === rejected.id),
+    'Rejected request missing from history.',
+  );
+  const conflict = await db.registrationRequest.create({
+    data: {
+      name: 'Duplicate synthetic identity',
+      ftcId: 810,
+      phone: '+8801712345678',
+      evidence: 'Synthetic',
+    },
+  });
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${conflict.id}/approve`,
+        approvalBody,
+        directToken,
+      )
+    ).status === 409,
+    'Canonical phone conflict approved.',
+  );
+  check(
+    (await db.registrationRequest.findUnique({ where: { id: conflict.id } }))
+      .status === 'pending',
+    'Conflicted approval changed status.',
+  );
+  delete process.env.ADMIN_FTC_IDS;
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${conflict.id}/reject`,
+        { reviewNote: 'Synthetic' },
+        directToken,
+      )
+    ).status === 403,
+    'Revoked administrator still reviewed requests.',
+  );
+  process.env.ADMIN_FTC_IDS = '4';
   check(
     (await db.registrationRequest.findUnique({ where: { id: pending.id } }))
       .status === 'approved',
@@ -512,6 +814,69 @@ try {
       .ftcId === 808,
     'Approved member linked to wrong profile.',
   );
+
+  check(
+    (
+      await call(
+        'GET',
+        '/admin/registrations',
+        undefined,
+        approvedLogin.data.token,
+      )
+    ).status === 403,
+    'Ordinary member read private requests.',
+  );
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${conflict.id}/approve`,
+        approvalBody,
+        approvedLogin.data.token,
+      )
+    ).status === 403,
+    'Ordinary member approved a request.',
+  );
+  check(
+    (
+      await call(
+        'POST',
+        `/admin/registrations/${conflict.id}/reject`,
+        { reviewNote: 'Attack' },
+        approvedLogin.data.token,
+      )
+    ).status === 403,
+    'Ordinary member rejected a request.',
+  );
+  check(
+    (
+      await call(
+        'PATCH',
+        '/me',
+        { isAdministrator: true },
+        approvedLogin.data.token,
+      )
+    ).status === 400,
+    'Member promoted themselves to administrator.',
+  );
+  check(
+    (await call('GET', '/me', undefined, approvedLogin.data.token)).data
+      .isAdministrator === false,
+    'Ordinary profile advertised administrator capability.',
+  );
+  await db.member.update({
+    where: { id: fourth.id },
+    data: { isActive: false },
+  });
+  check(
+    (await call('GET', '/admin/registrations', undefined, directToken))
+      .status === 401,
+    'Inactive administrator kept access.',
+  );
+  await db.member.update({
+    where: { id: fourth.id },
+    data: { isActive: true },
+  });
 
   // Exercise SMS mode without contacting the provider or changing real members.
   await resetLimits();
@@ -534,9 +899,12 @@ try {
   try {
     globalThis.fetch = async (url, options) => {
       providerPayload = { url, ...options };
-      return new Response(JSON.stringify({ error: 0, data: { request_id: 1 } }), {
-        status: 200,
-      });
+      return new Response(
+        JSON.stringify({ error: 0, data: { request_id: 1 } }),
+        {
+          status: 200,
+        },
+      );
     };
     await provider.deliver('+8801712345678', '123456');
     check(
@@ -548,9 +916,12 @@ try {
       'SMS provider request is incorrect.',
     );
     globalThis.fetch = async () =>
-      new Response(JSON.stringify({ error: 417, msg: 'Insufficient balance' }), {
-        status: 200,
-      });
+      new Response(
+        JSON.stringify({ error: 417, msg: 'Insufficient balance' }),
+        {
+          status: 200,
+        },
+      );
     await assert.rejects(provider.deliver('+8801712345678', '123456'));
     checks++;
   } finally {
@@ -574,13 +945,16 @@ try {
     sent.get('+12025550101'),
   );
   check(smsLogin.status === 200, 'SMS challenge did not verify.');
-  const upgraded = await db.account.findUnique({ where: { memberId: first.id } });
+  const upgraded = await db.account.findUnique({
+    where: { memberId: first.id },
+  });
   check(
     upgraded.verificationMethod === 'sms' && upgraded.verifiedAt !== null,
     'Local account was not reverified through SMS.',
   );
   check(
-    (await call('GET', '/me', undefined, localSession.data.token)).status === 401,
+    (await call('GET', '/me', undefined, localSession.data.token)).status ===
+      401,
     'Old local session survived SMS verification.',
   );
   check(
@@ -616,8 +990,8 @@ try {
   );
   check(directSmsLogin.status === 200, 'Direct roster SMS did not verify.');
   check(
-    (await db.member.findUnique({ where: { id: seventh.id } })).phoneVerifiedAt !==
-      null,
+    (await db.member.findUnique({ where: { id: seventh.id } }))
+      .phoneVerifiedAt !== null,
     'Verified roster contact was not marked verified.',
   );
   await call(
@@ -652,10 +1026,294 @@ try {
     'Provider failure disclosed an eligible phone.',
   );
   check(
-    (await db.otpChallenge.findFirst({
-      where: { phone: '+8801912345000' },
-    })).consumedAt !== null,
+    (
+      await db.otpChallenge.findFirst({
+        where: { phone: '+8801912345000' },
+      })
+    ).consumedAt !== null,
     'Failed delivery left a usable challenge.',
+  );
+
+  // Separate staff identity shares a phone with a participant without sharing ownership.
+  const protectedRoster = JSON.stringify(
+    await db.member.findMany({ orderBy: { id: 'asc' } }),
+  );
+  const protectedAccounts = JSON.stringify(
+    await db.account.findMany({ orderBy: { id: 'asc' } }),
+  );
+  const rosterTotal = await db.member.count({ where: { isActive: true } });
+  process.env.TEST_ADMIN_ENABLED = 'true';
+  process.env.TEST_ADMIN_ID = '1000';
+  process.env.TEST_ADMIN_PHONE = '+8801712345678';
+  process.env.OTP_MODE = 'local';
+  const staff = await db.testAccount.create({
+    data: {
+      testId: 1000,
+      phone: '+8801712345678',
+      profile: {
+        name: 'Test administrator',
+        section: 'T',
+        cadre: { id: 'test', name: 'Test' },
+        bcsBatch: null,
+        education: 'Test',
+        university: 'Test',
+        email: 'test@example.invalid',
+        bloodGroup: 'Unknown',
+        homeDistrict: 'Test district',
+        phone: 'Test contact',
+        aboutMe: null,
+        favouriteQuotation: null,
+      },
+    },
+  });
+  const staffStart = (testId = 1000) =>
+    call('POST', '/auth/test/login', { testId, phone: '01712345678' });
+  const staffVerify = (challengeId, code) =>
+    call('POST', '/auth/test/verify', { challengeId, code });
+  await resetLimits();
+  const wrongStaff = await staffStart(999);
+  check(
+    wrongStaff.status === 200 && !('code' in wrongStaff.data),
+    'Unknown test identity disclosed eligibility.',
+  );
+  check(
+    (await staffVerify(wrongStaff.data.challengeId, '000000')).status === 401,
+    'Unknown test identity verified.',
+  );
+  await resetLimits();
+  const staffLogin = await staffStart();
+  const staffCode = await readCode(staffLogin.data.challengeId);
+  check(
+    (await call('POST', '/auth/login', { phone: '01712345678' })).status ===
+      429,
+    'Separate login bypassed shared phone cooldown.',
+  );
+  check(
+    (await verify(staffLogin.data.challengeId, staffCode)).status === 401,
+    'Test challenge accepted on participant route.',
+  );
+  check(
+    (await staffVerify(oldLocal.data.challengeId, oldLocalCode)).status === 401,
+    'Participant challenge accepted on test route.',
+  );
+  const staffWrong = staffCode === '000000' ? '111111' : '000000';
+  check(
+    (await staffVerify(staffLogin.data.challengeId, staffWrong)).status === 401,
+    'Wrong test OTP accepted.',
+  );
+  check(
+    (
+      await db.testOtpChallenge.findUnique({
+        where: { id: staffLogin.data.challengeId },
+      })
+    ).attempts === 1,
+    'Test OTP attempt not persisted.',
+  );
+  const staffConcurrent = await Promise.all([
+    staffVerify(staffLogin.data.challengeId, staffCode),
+    staffVerify(staffLogin.data.challengeId, staffCode),
+  ]);
+  check(
+    staffConcurrent.filter((r) => r.status === 200).length === 1,
+    'Test OTP replay created multiple sessions.',
+  );
+  const staffToken = staffConcurrent.find((r) => r.status === 200).data.token;
+  check(staffToken.startsWith('test_'), 'Test token lacks separate namespace.');
+  const staffMe = await call('GET', '/me', undefined, staffToken);
+  check(
+    staffMe.status === 200 &&
+      staffMe.data.testId === 1000 &&
+      staffMe.data.id === staff.id &&
+      staffMe.data.isTestAccount &&
+      staffMe.data.isAdministrator,
+    'Test session acted as participant.',
+  );
+  check(
+    (await call('GET', '/members', undefined, staffToken)).data.total ===
+      rosterTotal,
+    'Test identity changed directory count.',
+  );
+  check(
+    (await call('GET', '/members/' + staff.id, undefined, staffToken))
+      .status === 404,
+    'Test identity appeared in participant directory.',
+  );
+  check(
+    (
+      await call(
+        'PATCH',
+        '/me',
+        {
+          name: 'My private test profile',
+          phone: 'Test display contact',
+          bloodGroup: 'Test group',
+        },
+        staffToken,
+      )
+    ).status === 200,
+    'Separate profile edit failed.',
+  );
+  check(
+    (await db.testAccount.findUnique({ where: { id: staff.id } })).profile
+      .name === 'My private test profile',
+    'Separate profile edit did not persist.',
+  );
+  check(
+    (
+      await call(
+        'PATCH',
+        '/me',
+        { ftcId: 4, loginPhone: '+8801812345678' },
+        staffToken,
+      )
+    ).status === 400,
+    'Test profile reassigned identity.',
+  );
+  check(
+    (await call('GET', '/admin/registrations', undefined, staffToken))
+      .status === 200,
+    'Separate test administrator cannot review.',
+  );
+  const staffRequest = await db.registrationRequest.create({
+    data: {
+      name: 'Synthetic staff review',
+      ftcId: 900,
+      phone: '+8801998765432',
+      evidence: 'Synthetic',
+    },
+  });
+  check(
+    (
+      await call(
+        'POST',
+        '/admin/registrations/' + staffRequest.id + '/reject',
+        { reviewNote: 'Synthetic review only' },
+        staffToken,
+      )
+    ).status === 201,
+    'Test administrator rejection failed.',
+  );
+  const staffReview = (
+    await call(
+      'GET',
+      '/admin/registrations/' + staffRequest.id,
+      undefined,
+      staffToken,
+    )
+  ).data.request;
+  check(
+    staffReview.reviewedByTestAccount.testId === 1000 &&
+      staffReview.reviewedBy === null,
+    'Test administrator audit impersonated a participant.',
+  );
+  await resetLimits();
+  const staleStaff = await staffStart();
+  const staleStaffCode = await readCode(staleStaff.data.challengeId);
+  await resetLimits();
+  const replacementStaff = await staffStart();
+  const replacementCode = await readCode(replacementStaff.data.challengeId);
+  check(
+    (await staffVerify(staleStaff.data.challengeId, staleStaffCode)).status ===
+      401,
+    'Resent test OTP left older code active.',
+  );
+  await db.testOtpChallenge.update({
+    where: { id: replacementStaff.data.challengeId },
+    data: { expiresAt: new Date(0) },
+  });
+  check(
+    (await staffVerify(replacementStaff.data.challengeId, replacementCode))
+      .status === 401,
+    'Expired test OTP accepted.',
+  );
+  await resetLimits();
+  const lockedStaff = await staffStart();
+  const lockedStaffCode = await readCode(lockedStaff.data.challengeId);
+  for (let i = 0; i < 5; i++)
+    await staffVerify(
+      lockedStaff.data.challengeId,
+      lockedStaffCode === '000000' ? '111111' : '000000',
+    );
+  check(
+    (await staffVerify(lockedStaff.data.challengeId, lockedStaffCode))
+      .status === 401,
+    'Test OTP attempt limit bypassed.',
+  );
+  process.env.TEST_ADMIN_ENABLED = 'false';
+  check(
+    (await call('GET', '/me', undefined, staffToken)).status === 401,
+    'Disabled test identity kept access.',
+  );
+  process.env.TEST_ADMIN_ENABLED = 'true';
+  await db.testAccount.update({
+    where: { id: staff.id },
+    data: { isActive: false },
+  });
+  check(
+    (await call('GET', '/admin/registrations', undefined, staffToken))
+      .status === 401,
+    'Inactive test administrator kept access.',
+  );
+  await db.testAccount.update({
+    where: { id: staff.id },
+    data: { isActive: true },
+  });
+  await resetLimits();
+  const beforeSmsStaff = await staffStart();
+  const beforeSmsStaffCode = await readCode(beforeSmsStaff.data.challengeId);
+  process.env.OTP_MODE = 'sms';
+  app.get(SmsBdDelivery).deliver = async (phone, code) => sent.set(phone, code);
+  check(
+    (await staffVerify(beforeSmsStaff.data.challengeId, beforeSmsStaffCode))
+      .status === 401,
+    'Local test OTP worked in SMS mode.',
+  );
+  await resetLimits();
+  const smsStaff = await staffStart();
+  const smsStaffResult = await staffVerify(
+    smsStaff.data.challengeId,
+    sent.get('+8801712345678'),
+  );
+  check(
+    smsStaffResult.status === 200 && smsStaffResult.data.deliveryMode === 'sms',
+    'Separate SMS verification failed.',
+  );
+  check(
+    (await call('GET', '/me', undefined, staffToken)).status === 401,
+    'Local test session survived SMS upgrade.',
+  );
+  process.env.NODE_ENV = 'production';
+  check(
+    (
+      await call(
+        'GET',
+        '/admin/registrations',
+        undefined,
+        smsStaffResult.data.token,
+      )
+    ).status === 200,
+    'SMS test administrator unavailable in production.',
+  );
+  process.env.NODE_ENV = 'development';
+  check(
+    (await call('POST', '/auth/logout', {}, smsStaffResult.data.token))
+      .status === 204,
+    'Test sign-out failed.',
+  );
+  check(
+    (await call('GET', '/me', undefined, smsStaffResult.data.token)).status ===
+      401,
+    'Test session survived sign-out.',
+  );
+  check(
+    JSON.stringify(await db.member.findMany({ orderBy: { id: 'asc' } })) ===
+      protectedRoster,
+    'Separate staff flow changed real participant profiles.',
+  );
+  check(
+    JSON.stringify(await db.account.findMany({ orderBy: { id: 'asc' } })) ===
+      protectedAccounts,
+    'Separate staff flow changed real participant accounts.',
   );
 
   console.log(

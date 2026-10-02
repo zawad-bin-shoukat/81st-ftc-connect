@@ -14,6 +14,8 @@ From the repository root, run the checks:
 
 The import integration checks use temporary tables; schema verification rolls back all synthetic rows. The live API check starts and closes its own server on a temporary localhost port, using a process-only credential, without logging participant values.
 
-See docs/database.md for import behavior, docs/api.md for directory endpoints, and docs/authentication.md for roster-phone login and administrator-reviewed registration. Local test OTPs, persistent member sessions, self-profile updates, and Flutter integration are implemented. Real SMS verification, account recovery, and photo storage remain pending.
+See docs/database.md for import behavior, docs/api.md for directory endpoints, and docs/authentication.md for roster-phone login and administrator-reviewed registration. Local test OTPs, persistent member sessions, self-profile updates, and Flutter integration are implemented. Real SMS verification through sms.bd is implemented; account recovery and photo storage remain deferred.
 
 Run auth:setup once to configure local mode and auth:code to retrieve the latest active local test code. Existing roster members need no invite. The registration:review CLI lists, approves or rejects new membership requests after the administrator verifies membership. auth:check verifies the full flow in a disposable database.
+
+Membership review is available in Flutter to active members named in the private ADMIN_FTC_IDS setting. Test ID 1000 is a separate administrator/test identity outside the participant roster; configure TEST_ADMIN_ENABLED/ID/PHONE and run test-account:setup. Keep ADMIN_FTC_IDS empty when only that identity should review requests. See docs/authentication.md for access rules, approval requirements and the CLI fallback. The review-audit migration is additive; never reset the roster database.

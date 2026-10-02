@@ -112,7 +112,7 @@ class _PhoneSignInScreenState extends State<PhoneSignInScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Local test mode: codes are available on your Mac. No SMS is sent.',
+                'Only approved 81st FTC members can sign in.',
                 textAlign: TextAlign.center,
               ),
             ],

@@ -27,7 +27,7 @@ void main() {
     expect(find.text('Unknown'), findsOneWidget);
   });
 
-  testWidgets('phone input is required and local testing is explicit', (
+  testWidgets('phone input is required and roster eligibility is explained', (
     tester,
   ) async {
     await tester.pumpWidget(const FtcConnectApp());
@@ -38,6 +38,11 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pump();
     expect(find.text('Enter your login phone number'), findsOneWidget);
-    expect(find.textContaining('No SMS is sent'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'First-time members already in the roster need no registration.',
+      ),
+      findsOneWidget,
+    );
   });
 }

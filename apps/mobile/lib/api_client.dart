@@ -26,6 +26,7 @@ class ApiClient extends ChangeNotifier {
   String? startupError;
   VoidCallback? onSessionEnded;
   bool get signedIn => _token != null;
+  bool get isTestAccount => _token?.startsWith('test_') ?? false;
   static String get baseUrl {
     const configured = String.fromEnvironment('API_BASE_URL');
     if (configured.isNotEmpty) return configured.replaceAll(RegExp(r'/$'), '');

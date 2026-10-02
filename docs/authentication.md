@@ -30,7 +30,13 @@ In SMS mode, read the code on that phone instead. Enter it within five minutes. 
 
 The Not in the roster? Request membership form sends name, FTC ID, phone and membership details to POST /auth/registration. It records a pending request only: no roster entry, account, session or login code is granted. Responses do not reveal existing or pending membership, and submissions are rate-limited. Phone possession is checked at first login after approval using the configured OTP mode; real SMS must be tested before launch.
 
-Only the administrator's local CLI can approve or reject requests. There is no public approval endpoint or administrator role assigned through the app. Review membership evidence independently before approving; the applicant's statement alone is not proof.
+The administrator can review requests in Flutter under My profile → Review membership requests. Review access is available to the separately provisioned administrator/test identity, or to existing active participants explicitly configured in ADMIN_FTC_IDS. Ordinary members cannot grant this authority through a profile edit or request body. Test ID 1000 belongs to the separate identity: it is not a participant FTC ID and does not add a placeholder to the roster.
+
+Leave ADMIN_FTC_IDS empty when only the separate administrator/test identity should have access. To appoint a real participant deliberately, set ADMIN_FTC_IDS to that participant’s ID in the ignored backend .env and restart the backend. Multiple IDs may be separated by commas. An empty or malformed value disables review access. Authorization is rechecked on every request; removing an ID or deactivating its member revokes review access. Production uses SMS-verified accounts. Development with OTP_MODE=local permits local test accounts so synthetic review tests need no SMS.
+
+The review screen lists pending, approved and rejected requests with pagination and refresh. Open a pending request, verify membership independently, choose an existing cadre, enter all required profile details, and record how membership was verified. Leave BCS batch blank for unknown. Approval requires an explicit verification checkbox and confirmation; rejection requires a reason. Decisions record the reviewer, time and note. Historical decisions cannot be changed by these endpoints. Failed validation and ID/phone conflicts leave the request pending and never overwrite a participant. After approval, the person must still complete phone OTP; no account or session is created by approval, and no notification is sent automatically. Tell the applicant the outcome privately. A rejected applicant can submit a fresh request with corrected information.
+
+The local CLI remains available for trusted development review. Older and CLI decisions may have no member reviewer; they are identified as local-tool decisions. Review membership evidence independently before approving; the applicant's statement alone is not proof.
 
     ./scripts/backend.sh registration:review -- list
 
@@ -54,7 +60,7 @@ Name, FTC ID and login contact come from the reviewed request. The cadre must al
     ./scripts/backend.sh registration:review -- approve REQUEST_UUID /absolute/path/to/new-member-profile.json
     ./scripts/backend.sh registration:review -- reject REQUEST_UUID
 
-The approved person then signs in with their submitted phone and OTP. An administrator web/mobile dashboard and approval notifications are not implemented yet.
+The approved person then signs in with their submitted phone and OTP. Automatic approval notifications are not implemented.
 
 ## API
 
@@ -65,8 +71,12 @@ The approved person then signs in with their submitted phone and OTP. An adminis
 | POST /auth/registration | name, ftcId, phone, evidence; request administrator review only |
 | POST /auth/verify | challengeId, code; consume the code and return a bearer session |
 | POST /auth/logout | Authenticated; revoke this session |
-| GET /me | Authenticated own profile and login number |
+| GET /me | Authenticated own profile, login number, and server-computed isAdministrator capability |
 | PATCH /me | Authenticated own profile updates only |
+| GET /admin/registrations | Administrator only; status=pending/approved/rejected and page (20 per page) |
+| GET /admin/registrations/:id | Administrator only; request, review history and available cadres |
+| POST /admin/registrations/:id/approve | Administrator only; profile, membershipConfirmed=true, reviewNote |
+| POST /admin/registrations/:id/reject | Administrator only; reviewNote |
 
 Claim/login responses contain challengeId, expiresAt, retryAfterSeconds, deliveryMode. They never contain the OTP. Invalid invites and unknown login numbers receive the same response structure and cannot verify. Only local mode writes codes for the private local helper.
 
@@ -104,3 +114,19 @@ Finish broader sms.bd delivery tests across operators and devices, production HT
 Provider references: [sms.bd API](https://sms.bd/api), [non-masking OTP service](https://sms.bd/OTP_NonMasking/), and [terms](https://sms.bd/Terms_Condition/).
 
 References: [OWASP authentication guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html), [Prisma transactions](https://www.prisma.io/docs/orm/fundamentals/transactions), [Flutter networking](https://docs.flutter.dev/cookbook/networking/fetch-data), [Flutter secure storage](https://pub.dev/packages/flutter_secure_storage).
+
+## Membership review verification (2026-10-02)
+
+The review implementation passed 108 authentication/integration checks against a disposable database, 11 Flutter widget tests, 5 backend unit tests, static analysis/lint, and the existing 37 schema checks. The integration tests cover anonymous/member denial, malformed and revoked administrator configuration, invalid profile/review data, canonical phone conflicts, concurrent approvals, immutable history, audit attribution, and OTP login after approval. A checksum comparison confirmed all 553 real participant rows were unchanged after applying the additive audit migration. UI tests use fictional API data; the separate test identity’s real-phone walkthrough must be completed by the owner. No real registration decision or approval SMS was made during testing.
+
+## Separate administrator/test identity
+
+Test ID 1000 has its own TestAccount, TestOtpChallenge and TestSession records. It is outside Member and Account, the roster count, district filters and participant directory. Its editable profile is explicitly fictional. Test login never assigns a session to a real participant, even when the same phone already belongs to a participant Account. Existing participant accounts remain unchanged; the normal phone sign-in route still uses those accounts.
+
+Private backend configuration: TEST_ADMIN_ENABLED=true, TEST_ADMIN_ID=1000 and TEST_ADMIN_PHONE set to the owner’s canonical phone. Keep ADMIN_FTC_IDS empty for the separate identity alone. Provision with ./scripts/backend.sh test-account:setup after deploying migrations and building the backend. The setup command is local-only and idempotent, and refuses phone reassignment. There is no public test-account registration API. Disabling TEST_ADMIN_ENABLED, changing the configured identity, or deactivating its TestAccount immediately denies its sessions. Production requires SMS mode; local verification never counts as SMS verification.
+
+In Flutter, sign out an existing participant session first. On the welcome screen choose Administrator / test sign-in, enter test ID 1000 and the configured phone, then enter the SMS OTP. The test profile contains Review membership requests. Its profile edits update only TestAccount.profile; approval of an actual request intentionally adds a new participant and records the test administrator as reviewer, never as a participant. Use synthetic requests for testing and do not approve invented members into the real roster.
+
+POST /auth/test/login accepts testId and phone; POST /auth/test/verify accepts challengeId and code. Test OTPs and tokens are separate from participant OTPs and tokens. Phone/IP throttles are shared across both entry points. Tokens are stored securely and revoke on sign-out. Test sessions can read the existing directory and use /me for the separate profile. No participant’s private login identity is returned by browsing the directory.
+
+Separate-identity validation passed 139 isolated authentication/integration checks and 13 Flutter widget tests, including shared-phone isolation, cross-route OTP rejection, replay/expiry/attempt limits, shared cooldown, SMS upgrade with a mocked provider, administrator audit attribution and sign-out. The approval conflict handler also handles PostgreSQL serialization conflicts from Prisma’s driver adapter. No real SMS is sent by these tests.

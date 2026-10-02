@@ -36,7 +36,8 @@
     "auth:invite": "node scripts/auth-local.mjs invite",
     "auth:code": "node scripts/auth-local.mjs code",
     "auth:check": "node scripts/check-auth.mjs",
-    "registration:review": "node scripts/review-registration.mjs"
+    "registration:review": "node scripts/review-registration.mjs",
+    "test-account:setup": "node scripts/setup-test-account.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

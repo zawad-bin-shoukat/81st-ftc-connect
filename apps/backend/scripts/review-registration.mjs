@@ -41,11 +41,7 @@ try {
           '. They can now sign in with their submitted phone and OTP.',
       );
     } else if (action === 'reject') {
-      const result = await db.registrationRequest.updateMany({
-        where: { id, status: 'pending' },
-        data: { status: 'rejected', reviewedAt: new Date() },
-      });
-      if (!result.count) throw new Error('Request is not pending.');
+      await new RegistrationService(db).reject(id);
       console.log('Request rejected. No roster record created.');
     } else
       throw new Error(

@@ -10,11 +10,13 @@ class VerifyCodeScreen extends StatefulWidget {
     required this.challenge,
     required this.requestPath,
     required this.requestBody,
+    this.verificationPath = '/auth/verify',
     super.key,
   });
   final String phone;
   final Map<String, dynamic> challenge;
   final String requestPath;
+  final String verificationPath;
   final Map<String, dynamic> requestBody;
   @override
   State<VerifyCodeScreen> createState() => _VerifyCodeScreenState();
@@ -55,7 +57,7 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
       final api = ApiScope.of(context);
       final session = await api.request(
         'POST',
-        '/auth/verify',
+        widget.verificationPath,
         body: {
           'challengeId': _challenge['challengeId'],
           'code': _code.text.trim(),
@@ -147,27 +149,28 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                   ),
                 ),
               )
-            else Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Local test — no SMS was sent. On your Mac, run this command from the project folder:',
-                    ),
-                    const SizedBox(height: 8),
-                    SelectableText(
-                      './scripts/backend.sh auth:code -- ${_challenge['challengeId'] as String}',
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Codes expire after 5 minutes. If no code is available, check your roster number or contact the administrator.',
-                    ),
-                  ],
+            else
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Local test — no SMS was sent. On your Mac, run this command from the project folder:',
+                      ),
+                      const SizedBox(height: 8),
+                      SelectableText(
+                        './scripts/backend.sh auth:code -- ${_challenge['challengeId'] as String}',
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Codes expire after 5 minutes. If no code is available, check your roster number or contact the administrator.',
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

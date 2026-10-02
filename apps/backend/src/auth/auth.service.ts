@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  HttpException,
   Inject,
   Injectable,
   Logger,
@@ -21,6 +20,8 @@ import {
 } from './auth-input.js';
 import { LocalOtpDelivery } from './local-otp.delivery.js';
 import { SmsBdDelivery } from './sms-bd.delivery.js';
+import { TestAccountService } from './test-account.service.js';
+import { consumeRateLimit } from './auth-rate-limit.js';
 
 @Injectable()
 export class AuthService {
@@ -29,6 +30,8 @@ export class AuthService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(LocalOtpDelivery) private readonly localDelivery: LocalOtpDelivery,
     @Inject(SmsBdDelivery) private readonly smsDelivery: SmsBdDelivery,
+    @Inject(TestAccountService)
+    private readonly testAccounts: TestAccountService,
   ) {}
 
   // Count all matching contacts, including inactive/claimed records: never guess.
@@ -52,20 +55,7 @@ export class AuthService {
     maximum: number,
     seconds = 900,
   ) {
-    const window = Math.floor(Date.now() / (seconds * 1000));
-    const row = await this.prisma.authRateLimit.upsert({
-      where: { key: digest(scope + ':' + identity + ':' + window) },
-      create: {
-        key: digest(scope + ':' + identity + ':' + window),
-        expiresAt: new Date((window + 1) * seconds * 1000),
-      },
-      update: { count: { increment: 1 } },
-    });
-    if (row.count > maximum)
-      throw new HttpException(
-        'Too many attempts. Please try again later.',
-        429,
-      );
+    return consumeRateLimit(this.prisma, scope, identity, maximum, seconds);
   }
 
   async start(body: unknown, purpose: 'claim' | 'login', peer: string) {
@@ -318,6 +308,8 @@ export class AuthService {
   }
 
   async authenticate(authorization?: string) {
+    if (authorization?.match(/^Bearer test_[A-Za-z0-9_-]{43}$/))
+      return this.testAccounts.authenticate(authorization);
     if (!authorization?.match(/^Bearer [A-Za-z0-9_-]{43}$/))
       throw new UnauthorizedException('Please sign in.');
     const { mode } = authConfig();
@@ -341,11 +333,13 @@ export class AuthService {
     return {
       tokenHash,
       memberId: session.account.memberId,
+      testAccountId: null,
       loginPhone: session.account.loginPhone,
     };
   }
 
   async logout(tokenHash: string) {
+    await this.testAccounts.logout(tokenHash);
     await this.prisma.authSession.updateMany({
       where: { tokenHash },
       data: { revokedAt: new Date() },
