@@ -31,7 +31,7 @@ export class AuthController {
   testLogin(@Body() body: unknown, @Req() request: Request) {
     return this.testAccounts.start(
       body,
-      request.socket.remoteAddress ?? 'unknown',
+      request.ip ?? request.socket.remoteAddress ?? 'unknown',
     );
   }
   @Post('test/verify')
@@ -40,7 +40,7 @@ export class AuthController {
   testVerify(@Body() body: unknown, @Req() request: Request) {
     return this.testAccounts.verify(
       body,
-      request.socket.remoteAddress ?? 'unknown',
+      request.ip ?? request.socket.remoteAddress ?? 'unknown',
     );
   }
   @Post('registration')
@@ -50,7 +50,7 @@ export class AuthController {
     authConfig();
     await this.auth.throttle(
       'registration-ip',
-      request.socket.remoteAddress ?? 'unknown',
+      request.ip ?? request.socket.remoteAddress ?? 'unknown',
       5,
       3600,
     );
@@ -63,7 +63,7 @@ export class AuthController {
     return this.auth.start(
       body,
       'claim',
-      request.socket.remoteAddress ?? 'unknown',
+      request.ip ?? request.socket.remoteAddress ?? 'unknown',
     );
   }
   @Post('login')
@@ -73,14 +73,14 @@ export class AuthController {
     return this.auth.start(
       body,
       'login',
-      request.socket.remoteAddress ?? 'unknown',
+      request.ip ?? request.socket.remoteAddress ?? 'unknown',
     );
   }
   @Post('verify')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   verify(@Body() body: unknown, @Req() request: Request) {
-    return this.auth.verify(body, request.socket.remoteAddress ?? 'unknown');
+    return this.auth.verify(body, request.ip ?? request.socket.remoteAddress ?? 'unknown');
   }
   @Post('logout')
   @HttpCode(204)
