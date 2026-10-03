@@ -1,0 +1,45 @@
+name: Delete expired app records
+
+on:
+  schedule:
+    # 09:37 in Bangladesh (03:37 UTC), away from GitHub's busy hour boundary.
+    - cron: '37 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ftc-retention
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.NEON_RETENTION_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check destination
+        run: |
+          python3 - <<'PY'
+          import os
+          from urllib.parse import parse_qs, urlsplit
+
+          value = os.environ.get('DATABASE_URL', '')
+          url = urlsplit(value) if value else None
+          query = parse_qs(url.query) if url else {}
+          if (not url or
+              url.hostname != 'ep-sweet-wind-b3fcsz3o.c-4.ap-southeast-1.aws.neon.tech' or
+              url.path != '/neondb' or
+              query.get('sslmode', [None])[0] not in ('require', 'verify-full')):
+              raise SystemExit('Set NEON_RETENTION_DATABASE_URL to this project’s direct TLS Neon URL.')
+          print('Production Neon destination confirmed; credentials are hidden.')
+          PY
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Delete expired records
+        run: |
+          psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f apps/backend/prisma/retention.sql
+          echo 'Retention cleanup completed.'

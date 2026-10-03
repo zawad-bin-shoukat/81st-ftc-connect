@@ -1316,6 +1316,105 @@ try {
     'Separate staff flow changed real participant accounts.',
   );
 
+  // Deletion checks operate only on new synthetic rows in this disposable DB.
+  const deletingMember = await member(9000);
+  const deletingAccount = await db.account.create({
+    data: {
+      memberId: deletingMember.id,
+      loginPhone: '+8801700009000',
+      verificationMethod: 'sms',
+      verifiedAt: new Date(),
+    },
+  });
+  const deletingToken = randomBytes(32).toString('base64url');
+  await db.authSession.create({
+    data: {
+      tokenHash: hash(deletingToken),
+      accountId: deletingAccount.id,
+      expiresAt: new Date(Date.now() + 3600000),
+    },
+  });
+  const reviewedRequest = await db.registrationRequest.create({
+    data: {
+      ftcId: 9001,
+      name: 'Other applicant',
+      phone: '+8801700009001',
+      evidence: 'Synthetic',
+      reviewedByMemberId: deletingMember.id,
+    },
+  });
+  await db.registrationRequest.create({
+    data: {
+      ftcId: 9000,
+      name: 'Deleting applicant',
+      phone: '+8801700009000',
+      evidence: 'Synthetic',
+      status: 'approved',
+    },
+  });
+  const unrelatedRequest = await db.registrationRequest.create({
+    data: {
+      ftcId: 9000,
+      name: 'Unrelated applicant',
+      phone: '+8801700009999',
+      evidence: 'Synthetic',
+    },
+  });
+  check(
+    (await call('DELETE', '/me', {}, deletingToken)).status === 400,
+    'Member deletion did not require explicit confirmation.',
+  );
+  check(
+    (await call('DELETE', '/me', { confirm: 'DELETE' }, deletingToken))
+      .status === 200,
+    'Member self-deletion failed.',
+  );
+  check(
+    !(await db.member.findUnique({ where: { id: deletingMember.id } })) &&
+      !(await db.account.findUnique({ where: { id: deletingAccount.id } })) &&
+      !(await db.authSession.findUnique({
+        where: { tokenHash: hash(deletingToken) },
+      })),
+    'Deleted member retained profile, account, or session.',
+  );
+  check(
+    (await call('GET', '/me', undefined, deletingToken)).status === 401,
+    'Deleted member session retained access.',
+  );
+  check(
+    !(await db.registrationRequest.findFirst({
+      where: { ftcId: 9000, phone: '+8801700009000' },
+    })) &&
+      !!(await db.registrationRequest.findUnique({
+        where: { id: unrelatedRequest.id },
+      })) &&
+      (
+        await db.registrationRequest.findUnique({
+          where: { id: reviewedRequest.id },
+        })
+      ).reviewedByMemberId === null,
+    'Member deletion left an applicant submission or reviewer link.',
+  );
+
+  const deletingStaffToken = 'test_' + randomBytes(32).toString('base64url');
+  await db.testSession.create({
+    data: {
+      tokenHash: hash(deletingStaffToken),
+      testAccountId: staff.id,
+      expiresAt: new Date(Date.now() + 3600000),
+    },
+  });
+  check(
+    (await call('DELETE', '/me', { confirm: 'DELETE' }, deletingStaffToken))
+      .status === 200,
+    'Test account self-deletion failed.',
+  );
+  check(
+    !(await db.testAccount.findUnique({ where: { id: staff.id } })) &&
+      (await call('GET', '/me', undefined, deletingStaffToken)).status === 401,
+    'Deleted test account retained access.',
+  );
+
   console.log(
     checks +
       ' authentication/integration checks passed in an isolated temporary database.',

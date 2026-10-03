@@ -6,10 +6,16 @@ import { MeController } from './me.controller.js';
 import { LocalApiGuard } from './local-api.guard.js';
 import { MembersController } from './members.controller.js';
 import { MembersService } from './members.service.js';
+import { AccountDeletionService } from './account-deletion.service.js';
 
 @Module({
   imports: [DatabaseModule, AuthModule],
   controllers: [MembersController, MeController],
-  providers: [MembersService, LocalApiGuard, DirectoryAccessGuard],
+  providers: [
+    MembersService,
+    AccountDeletionService,
+    LocalApiGuard,
+    DirectoryAccessGuard,
+  ],
 })
 export class MembersModule {}

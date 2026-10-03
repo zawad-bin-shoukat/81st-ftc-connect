@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../api_client.dart';
 import '../contact_actions.dart';
 import 'membership_review_screen.dart';
+import 'delete_account_screen.dart';
+import '../privacy_link.dart';
 
 String ordinalBatch(dynamic value) {
   if (value == null) return 'Unknown';
@@ -152,6 +154,23 @@ class _LiveProfileScreenState extends State<LiveProfileScreen> {
                     icon: const Icon(Icons.fact_check_outlined),
                     label: const Text('Review membership requests'),
                   ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => DeleteAccountScreen(
+                        api: widget.api,
+                        isTestAccount: data['isTestAccount'] == true,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Delete my account'),
+                ),
+                TextButton(
+                  onPressed: () => openPrivacyPolicy(context),
+                  child: const Text('Privacy policy'),
+                ),
               ],
               const SizedBox(height: 16),
               for (final entry in rows.entries)

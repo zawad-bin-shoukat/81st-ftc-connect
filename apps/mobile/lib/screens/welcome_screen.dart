@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'phone_sign_in_screen.dart';
 import 'preview_shell.dart';
 import 'test_sign_in_screen.dart';
+import '../privacy_link.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -71,6 +72,10 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                     child: const Text('Administrator / test sign-in'),
+                  ),
+                  TextButton(
+                    onPressed: () => openPrivacyPolicy(context),
+                    child: const Text('Privacy policy'),
                   ),
                   const SizedBox(height: 16),
                   Text(

@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Patch,
@@ -13,6 +15,7 @@ import { authConfig } from '../auth/auth-input.js';
 import { SessionGuard } from '../auth/session.guard.js';
 import type { MemberRequest } from '../auth/session.guard.js';
 import { MembersService } from './members.service.js';
+import { AccountDeletionService } from './account-deletion.service.js';
 
 @Controller('me')
 @UseGuards(SessionGuard)
@@ -22,6 +25,8 @@ export class MeController {
     @Inject(AdminAccess) private readonly adminAccess: AdminAccess,
     @Inject(TestAccountService)
     private readonly testAccounts: TestAccountService,
+    @Inject(AccountDeletionService)
+    private readonly deletion: AccountDeletionService,
   ) {}
   @Get()
   async me(@Req() request: MemberRequest) {
@@ -39,5 +44,18 @@ export class MeController {
     if (request.auth.testAccountId)
       return this.testAccounts.updateOwn(request.auth.testAccountId, body);
     return this.members.updateOwn(request.auth.memberId!, body);
+  }
+
+  @Delete()
+  async deleteAccount(@Req() request: MemberRequest, @Body() body: unknown) {
+    if (
+      !body ||
+      typeof body !== 'object' ||
+      Array.isArray(body) ||
+      (body as Record<string, unknown>).confirm !== 'DELETE'
+    )
+      throw new BadRequestException('Confirm account deletion.');
+    await this.deletion.deleteOwn(request.auth);
+    return { message: 'Your account and app profile have been deleted.' };
   }
 }

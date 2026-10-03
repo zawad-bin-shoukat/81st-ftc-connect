@@ -46,8 +46,12 @@ Filters combine with AND. Results include only active members and are ordered by
 
 Directory summaries contain id, ftcId, name, section, cadre, bcsBatch, and homeDistrict. Details add education, university, phone, email, bloodGroup, aboutMe, and favouriteQuotation. Raw contact and blood-group text are returned unchanged. BCS batch remains numeric or null; the mobile client formats ordinal labels. Profile storage keys, verification state, and internal timestamps are not exposed.
 
+## Privacy and deletion
+
+`GET /privacy` and `GET /account-deletion` are public HTML pages. The deletion page verifies the user's login phone through the existing OTP endpoints. `DELETE /me` requires a valid member or staff/test session and JSON `{ "confirm": "DELETE" }`. It removes that account and its app profile in a transaction. See [privacy-and-deletion.md](privacy-and-deletion.md) for retention and restore rules.
+
 ## Pending integration
 
-Direct roster-phone enrollment with local test codes or configured sms.bd delivery, session expiry/revocation, member-session directory access, and PATCH /me are implemented. Flutter uses these sessions rather than the developer credential. One real-phone SMS login and returning login have succeeded locally; broader carrier/device testing, account recovery, and photo storage remain pending. POST /auth/registration records pending membership requests but grants no access; approval is only available through the local administrator CLI. There is no endpoint to edit other members.
+Direct roster-phone enrollment with local test codes or configured sms.bd delivery, session expiry/revocation, member-session directory access, and PATCH /me are implemented. Flutter uses these sessions rather than the developer credential. One real-phone SMS login and returning login have succeeded locally; broader carrier/device testing, account recovery, and photo storage remain pending. POST /auth/registration records pending membership requests but grants no access; administrators can approve or reject requests in the app. There is no endpoint to edit other members.
 
 Implementation references: [NestJS guards](https://docs.nestjs.com/guards) and [Prisma reading data](https://www.prisma.io/docs/orm/fundamentals/reading-data).
