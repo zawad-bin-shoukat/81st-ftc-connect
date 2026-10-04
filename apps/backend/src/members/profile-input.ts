@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { objectBody } from '../auth/auth-input.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { bangladeshDistrictSet } from './districts.js';
 
 export function profileInput(body: unknown): Prisma.MemberUpdateInput {
   const limits: Record<string, number> = {
@@ -54,6 +55,12 @@ export function profileInput(body: unknown): Prisma.MemberUpdateInput {
       /^[A-Za-z0-9!#$%&'*+/=?^_\x60{|}~-]+(\.[A-Za-z0-9!#$%&'*+/=?^_\x60{|}~-]+)*@[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
     if (!valid.test(result.email) || result.email.split('@')[0].length > 64)
       throw new BadRequestException('Enter a valid email address.');
+  }
+  if (
+    typeof result.homeDistrict === 'string' &&
+    !bangladeshDistrictSet.has(result.homeDistrict)
+  ) {
+    throw new BadRequestException('Choose one of the 64 Bangladesh districts.');
   }
   return result;
 }

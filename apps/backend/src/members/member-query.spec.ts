@@ -1,4 +1,4 @@
-import { parseMemberQuery } from './member-query.js';
+import { nameWordPattern, parseMemberQuery } from './member-query.js';
 
 describe('member query validation', () => {
   it('always restricts active members and bounds pagination', () => {
@@ -23,18 +23,19 @@ describe('member query validation', () => {
       { q: ['one', 'two'] },
       { isActive: 'false' },
       { q: '' },
+      { homeDistrict: 'Manik' },
     ])
       expect(() => parseMemberQuery(raw)).toThrow();
   });
 
-  it('searches literal text and preserves exact blood-group filters', () => {
+  it('searches names as whole words and preserves exact blood-group filters', () => {
     const query = parseMemberQuery({ q: '50%_', bloodGroup: ' A ' });
-    expect(query.where.OR?.[0]).toEqual({
-      name: { contains: '50\\%\\_', mode: 'insensitive' },
-    });
+    expect(query.q).toBe('50%_');
+    expect(query.where.OR).toBeUndefined();
     expect(query.where.bloodGroup).toBe(' A ');
-    expect(parseMemberQuery({ q: '238' }).where.OR).toContainEqual({
-      ftcId: 238,
-    });
+    expect(nameWordPattern('anik')).toBe(
+      '(^|[^[:alnum:]])anik([^[:alnum:]]|$)',
+    );
+    expect(nameWordPattern('a.b')).toContain('a\\.b');
   });
 });

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../preview_member.dart';
+import '../districts.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({required this.member, super.key});
@@ -123,7 +124,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 field('phone', 'WhatsApp contact'),
                 field('email', 'Email'),
                 field('bloodGroup', 'Blood group'),
-                field('homeDistrict', 'Home district'),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: DropdownButtonFormField<String>(
+                    initialValue: bangladeshDistricts.contains(
+                      _fields['homeDistrict']!.text,
+                    )
+                        ? _fields['homeDistrict']!.text
+                        : null,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Home district',
+                    ),
+                    items: [
+                      for (final district in bangladeshDistricts)
+                        DropdownMenuItem(
+                          value: district,
+                          child: Text(district),
+                        ),
+                    ],
+                    onChanged: (district) =>
+                        _fields['homeDistrict']!.text = district ?? '',
+                    validator: (value) =>
+                        value == null ? 'Choose a district' : null,
+                  ),
+                ),
                 field('aboutMe', 'About me', required: false, maxLines: 3),
                 field(
                   'favouriteQuotation',

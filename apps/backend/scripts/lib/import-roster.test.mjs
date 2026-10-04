@@ -21,7 +21,7 @@ const member = {
   phone: ' Raw Bengali contact ০১ ',
   email: 'import.test@example.com',
   blood_group: ' A ',
-  home_district: 'District',
+  home_district: 'Dhaka',
   about_me: null,
   favourite_quotation: null,
 };

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api_client.dart';
+import '../districts.dart';
 
 class MembershipReviewScreen extends StatefulWidget {
   const MembershipReviewScreen({required this.api, super.key});
@@ -371,13 +372,38 @@ class _MembershipRequestDetailState extends State<MembershipRequestDetail> {
                             value == null ? 'Choose a cadre' : null,
                       ),
                       const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        initialValue:
+                            bangladeshDistricts.contains(
+                              _fields['homeDistrict']!.text,
+                            )
+                            ? _fields['homeDistrict']!.text
+                            : null,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Home district',
+                        ),
+                        items: [
+                          for (final district in bangladeshDistricts)
+                            DropdownMenuItem(
+                              value: district,
+                              child: Text(district),
+                            ),
+                        ],
+                        onChanged: _busy
+                            ? null
+                            : (district) => _fields['homeDistrict']!.text =
+                                  district ?? '',
+                        validator: (value) =>
+                            value == null ? 'Choose a district' : null,
+                      ),
+                      const SizedBox(height: 16),
                       for (final entry in {
                         'section': 'Section',
                         'education': 'Education',
                         'university': 'University',
                         'email': 'Email',
                         'bloodGroup': 'Blood group (as provided)',
-                        'homeDistrict': 'Home district',
                         'bcsBatch': 'BCS batch (leave blank for unknown)',
                         'reviewNote': 'How you verified membership',
                       }.entries)

@@ -77,7 +77,7 @@ try {
         phone: 'Raw contact ' + ftcId,
         email: 'test@example.com',
         bloodGroup: ' A ',
-        homeDistrict: 'District',
+        homeDistrict: 'Dhaka',
       },
     });
   }
@@ -497,7 +497,7 @@ try {
     university: 'University',
     email: 'new@example.com',
     bloodGroup: 'Unknown',
-    homeDistrict: 'District',
+    homeDistrict: 'Dhaka',
     bcsBatch: null,
   };
   const approvalBody = {

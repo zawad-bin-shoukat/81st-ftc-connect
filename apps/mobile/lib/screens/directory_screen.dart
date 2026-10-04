@@ -25,12 +25,12 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
     final query = _searchController.text.trim().toLowerCase();
     final members = previewMembers.where((member) {
       final matchesSection = _section == 'All' || member.section == _section;
-      final matchesQuery = [
-        member.name,
-        member.ftcId,
-        member.cadre,
-        member.homeDistrict,
-      ].any((value) => value.toLowerCase().contains(query));
+      final matchesQuery =
+          query.isEmpty ||
+          RegExp(
+            '(^|[^a-z0-9])${RegExp.escape(query)}([^a-z0-9]|\$)',
+            caseSensitive: false,
+          ).hasMatch(member.name);
       return matchesSection && matchesQuery;
     }).toList();
 
@@ -44,7 +44,7 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
               controller: _searchController,
               onChanged: (_) => setState(() {}),
               decoration: const InputDecoration(
-                hintText: 'Search name, FTC ID, cadre or district',
+                hintText: 'Search by name',
                 prefixIcon: Icon(Icons.search),
               ),
             ),

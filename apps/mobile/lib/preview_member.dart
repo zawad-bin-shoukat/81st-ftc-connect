@@ -43,7 +43,7 @@ const previewMembers = [
     phone: 'Example contact',
     email: 'example.a@example.com',
     bloodGroup: 'A+',
-    homeDistrict: 'Example District',
+    homeDistrict: 'Dhaka',
     aboutMe: 'This is a fictional profile for interface preview.',
   ),
   PreviewMember(
@@ -57,7 +57,7 @@ const previewMembers = [
     phone: 'Example contact',
     email: 'example.b@example.com',
     bloodGroup: 'B+',
-    homeDistrict: 'Example District',
+    homeDistrict: 'Dhaka',
   ),
   PreviewMember(
     name: 'Example Member C',
@@ -70,6 +70,6 @@ const previewMembers = [
     phone: 'Example contact',
     email: 'example.c@example.com',
     bloodGroup: 'O+',
-    homeDistrict: 'Example District',
+    homeDistrict: 'Dhaka',
   ),
 ];

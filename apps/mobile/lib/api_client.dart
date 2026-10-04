@@ -83,7 +83,7 @@ class ApiClient extends ChangeNotifier {
       throw ApiException('The server took too long. Please retry.');
     } on Exception {
       throw ApiException(
-        'Cannot reach the server. Check that the backend is running on your Mac.',
+        'Cannot reach the server. Check your internet connection and retry.',
       );
     }
     Map<String, dynamic> data = {};

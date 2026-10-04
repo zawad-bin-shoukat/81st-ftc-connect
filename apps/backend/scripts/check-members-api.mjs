@@ -67,6 +67,11 @@ try {
     'Filters failed.',
   );
   check(
+    filters.homeDistricts.length === 64 &&
+      new Set(filters.homeDistricts).size === 64,
+    'District filter must contain the 64 Bangladesh districts.',
+  );
+  check(
     (await get('/members?pageSize=101')).status === 400,
     'Invalid page size was accepted.',
   );
@@ -90,10 +95,26 @@ try {
       !('phoneVerifiedAt' in detail) && !('profilePhotoKey' in detail),
       'Internal fields leaked.',
     );
-    const found = await (await get('/members?q=' + first.ftcId)).json();
+    const searchWord = first.name.match(/[A-Za-z]+/)?.[0];
+    const found = await (
+      await get('/members?q=' + encodeURIComponent(searchWord))
+    ).json();
     check(
       found.items.some((item) => item.id === first.id),
-      'FTC ID search failed.',
+      'Name word search failed.',
+    );
+    const literalWord = new RegExp(
+      '(^|[^a-z0-9])' + searchWord + '([^a-z0-9]|$)',
+      'i',
+    );
+    check(
+      found.items.every((item) => literalWord.test(item.name)),
+      'Search included a non-name or a partial name match.',
+    );
+    const idSearch = await (await get('/members?q=' + first.ftcId)).json();
+    check(
+      idSearch.total === 0,
+      'FTC ID is still searchable.',
     );
     const section = await (
       await get('/members?section=' + encodeURIComponent(first.section))
@@ -103,6 +124,11 @@ try {
       'Section filter failed.',
     );
   }
+  const anik = await (await get('/members?q=anik')).json();
+  check(
+    anik.items.every((item) => /(^|[^a-z0-9])anik([^a-z0-9]|$)/i.test(item.name)),
+    'Anik search included a partial match such as Banik.',
+  );
   const unknown = await (await get('/members?bcsBatch=unknown')).json();
   check(
     unknown.total ===

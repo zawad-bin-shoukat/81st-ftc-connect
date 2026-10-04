@@ -33,12 +33,12 @@ GET /members accepts:
 
 | Parameter | Behavior |
 | --- | --- |
-| q | Literal case-insensitive substring of name, cadre, or home district; numeric text also matches exact FTC ID. Maximum 150 characters. |
+| q | Case-insensitive whole-word match in the member's name only. Maximum 150 characters. |
 | section | Exact section, up to two characters |
 | cadreId | Exact cadre UUID |
 | bcsBatch | Positive integer, or unknown for NULL |
 | bloodGroup | Exact stored free text; no formatting conversion |
-| homeDistrict | Exact stored text |
+| homeDistrict | One of the 64 Bangladesh districts (exact English label) |
 | page | Positive integer, default 1, maximum 100000 |
 | pageSize | Positive integer, default 25, maximum 100 |
 

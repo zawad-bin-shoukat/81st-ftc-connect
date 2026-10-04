@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api_client.dart';
+import '../districts.dart';
 import '../contact_actions.dart';
 import 'membership_review_screen.dart';
 import 'delete_account_screen.dart';
@@ -286,37 +287,74 @@ class _LiveEditProfileState extends State<LiveEditProfile> {
               for (final entry in labels.entries)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: TextFormField(
-                    controller: _fields[entry.key],
-                    decoration: InputDecoration(labelText: entry.value),
-                    keyboardType: entry.key == 'email'
-                        ? TextInputType.emailAddress
-                        : entry.key == 'bcsBatch'
-                        ? TextInputType.number
-                        : TextInputType.multiline,
-                    maxLines:
-                        ['aboutMe', 'favouriteQuotation'].contains(entry.key)
-                        ? 3
-                        : 1,
-                    validator: (text) {
-                      final value = text?.trim() ?? '';
-                      if (entry.key == 'bcsBatch') {
-                        final number = int.tryParse(value);
-                        return value.isNotEmpty &&
-                                (number == null || number < 1 || number > 32767)
-                            ? 'Enter a positive batch number, or leave blank.'
-                            : null;
-                      }
-                      if (![
-                            'aboutMe',
-                            'favouriteQuotation',
-                          ].contains(entry.key) &&
-                          value.isEmpty) {
-                        return 'This field is required.';
-                      }
-                      return null;
-                    },
-                  ),
+                  child: entry.key == 'homeDistrict'
+                      ? DropdownButtonFormField<String>(
+                          initialValue:
+                              bangladeshDistricts.contains(
+                                _fields['homeDistrict']!.text,
+                              )
+                              ? _fields['homeDistrict']!.text
+                              : null,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: entry.value,
+                            helperText:
+                                bangladeshDistricts.contains(
+                                  _fields['homeDistrict']!.text,
+                                )
+                                ? null
+                                : 'Choose the correct district from the list',
+                          ),
+                          items: [
+                            for (final district in bangladeshDistricts)
+                              DropdownMenuItem(
+                                value: district,
+                                child: Text(district),
+                              ),
+                          ],
+                          onChanged: _busy
+                              ? null
+                              : (district) => _fields['homeDistrict']!.text =
+                                    district ?? '',
+                          validator: (value) =>
+                              value == null ? 'Choose a district' : null,
+                        )
+                      : TextFormField(
+                          controller: _fields[entry.key],
+                          decoration: InputDecoration(labelText: entry.value),
+                          keyboardType: entry.key == 'email'
+                              ? TextInputType.emailAddress
+                              : entry.key == 'bcsBatch'
+                              ? TextInputType.number
+                              : TextInputType.multiline,
+                          maxLines:
+                              [
+                                'aboutMe',
+                                'favouriteQuotation',
+                              ].contains(entry.key)
+                              ? 3
+                              : 1,
+                          validator: (text) {
+                            final value = text?.trim() ?? '';
+                            if (entry.key == 'bcsBatch') {
+                              final number = int.tryParse(value);
+                              return value.isNotEmpty &&
+                                      (number == null ||
+                                          number < 1 ||
+                                          number > 32767)
+                                  ? 'Enter a positive batch number, or leave blank.'
+                                  : null;
+                            }
+                            if (![
+                                  'aboutMe',
+                                  'favouriteQuotation',
+                                ].contains(entry.key) &&
+                                value.isEmpty) {
+                              return 'This field is required.';
+                            }
+                            return null;
+                          },
+                        ),
                 ),
               if (_error != null)
                 Text(

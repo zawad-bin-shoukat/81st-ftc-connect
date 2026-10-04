@@ -8,7 +8,8 @@ import {
 import { profileInput } from './profile-input.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
-import { parseMemberQuery } from './member-query.js';
+import { nameWordPattern, parseMemberQuery } from './member-query.js';
+import { bangladeshDistricts } from './districts.js';
 
 const summarySelect = {
   id: true,
@@ -52,18 +53,26 @@ export class MembersService {
   }
 
   async list(query: Record<string, unknown>) {
-    const { where, page, pageSize, skip } = parseMemberQuery(query);
+    const { where, q, page, pageSize, skip } = parseMemberQuery(query);
     const [total, items] = await this.prisma.$transaction(
-      [
-        this.prisma.member.count({ where }),
-        this.prisma.member.findMany({
-          where,
-          select: summarySelect,
-          orderBy: { ftcId: 'asc' },
-          skip,
-          take: pageSize,
-        }),
-      ],
+      async (tx) => {
+        if (q) {
+          const matches = await tx.$queryRaw<{ id: string }[]>`
+            SELECT id FROM members WHERE name ~* ${nameWordPattern(q)}
+          `;
+          where.id = { in: matches.map((member) => member.id) };
+        }
+        return [
+          await tx.member.count({ where }),
+          await tx.member.findMany({
+            where,
+            select: summarySelect,
+            orderBy: { ftcId: 'asc' },
+            skip,
+            take: pageSize,
+          }),
+        ] as const;
+      },
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
     );
     return {
@@ -95,7 +104,7 @@ export class MembersService {
   }
 
   async filters() {
-    const [sections, cadres, batches, bloodGroups, districts] =
+    const [sections, cadres, batches, bloodGroups] =
       await this.prisma.$transaction(
         [
           this.prisma.member.findMany({
@@ -121,12 +130,6 @@ export class MembersService {
             distinct: ['bloodGroup'],
             orderBy: { bloodGroup: 'asc' },
           }),
-          this.prisma.member.findMany({
-            where: { isActive: true },
-            select: { homeDistrict: true },
-            distinct: ['homeDistrict'],
-            orderBy: { homeDistrict: 'asc' },
-          }),
         ],
         { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
       );
@@ -135,7 +138,7 @@ export class MembersService {
       cadres,
       bcsBatches: batches.map((item) => item.bcsBatch),
       bloodGroups: bloodGroups.map((item) => item.bloodGroup),
-      homeDistricts: districts.map((item) => item.homeDistrict),
+      homeDistricts: bangladeshDistricts,
     };
   }
 }

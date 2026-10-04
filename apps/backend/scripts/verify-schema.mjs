@@ -157,7 +157,7 @@ try {
     ['education', 'members_education_not_blank'],
     ['university', 'members_university_not_blank'],
     ['blood_group', 'members_blood_group_not_blank'],
-    ['home_district', 'members_home_district_not_blank'],
+    ['home_district', ['members_home_district_not_blank', 'members_home_district_known']],
   ];
 
   for (const [field, constraint] of blankFields) {
@@ -168,6 +168,13 @@ try {
       constraint,
     );
   }
+
+  await rejects(
+    'UPDATE members SET home_district = $1 WHERE id = $2',
+    ['Not a Bangladesh district', member.id],
+    '23514',
+    'members_home_district_known',
+  );
 
   await rejects(
     'UPDATE members SET email = $1 WHERE id = $2',

@@ -72,8 +72,13 @@ void main() {
       await tester.tap(find.text('Approve and add member'));
       await tester.pumpAndSettle();
       expect(writes, isEmpty);
-      await tester.ensureVisible(find.byType(DropdownButtonFormField<String>));
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      final cadreDropdown = find.byWidgetPredicate(
+        (widget) =>
+            widget is DropdownButtonFormField<String> &&
+            widget.decoration.labelText == 'Cadre',
+      );
+      await tester.ensureVisible(cadreDropdown);
+      await tester.tap(cadreDropdown);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Synthetic cadre').last);
       await tester.pumpAndSettle();
@@ -83,12 +88,26 @@ void main() {
         'University': 'University',
         'Email': 'test@example.com',
         'Blood group (as provided)': 'Unknown',
-        'Home district': 'District',
         'How you verified membership':
             'Confirmed by client against official roster.',
       }.entries) {
         await fill(tester, entry.key, entry.value);
       }
+      final districtDropdown = find.byWidgetPredicate(
+        (widget) =>
+            widget is DropdownButtonFormField<String> &&
+            widget.decoration.labelText == 'Home district',
+      );
+      await tester.ensureVisible(districtDropdown);
+      await tester.tap(districtDropdown);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Dhaka'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(find.text('Dhaka').last);
+      await tester.pumpAndSettle();
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Approve and add member'));

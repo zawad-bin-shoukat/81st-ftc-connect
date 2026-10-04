@@ -4,6 +4,7 @@ import {
   headings,
   normalizeBatch,
   normalizeCadre,
+  normalizeDistrict,
   phoneMatchKey,
   prepareRoster,
 } from './roster.mjs';
@@ -34,7 +35,7 @@ function fixture() {
     email: [211, 736, 940, 1042, 1241, 1246].includes(id)
       ? 'fixture' + id + '@gmail'
       : 'fixture@example.com',
-    home_district: 'District',
+    home_district: 'Dhaka',
     about_me: '',
     favourite_quotation: 'A quote',
   }));
@@ -96,4 +97,7 @@ test('contact matching is separate from raw text; unresolved batches fail', () =
   assert.throws(() => normalizeBatch('surprise'), /Unrecognized/);
   assert.equal(normalizeCadre('BPATC'), 'BPATC');
   assert.equal(normalizeCadre('BSC Livestock'), 'BSC Livestock');
+  assert.equal(normalizeDistrict('Dhaja'), 'Dhaka');
+  assert.equal(normalizeDistrict('Cox\'sBazar'), "Cox's Bazar");
+  assert.equal(normalizeDistrict('IRangpur '), 'Rangpur');
 });

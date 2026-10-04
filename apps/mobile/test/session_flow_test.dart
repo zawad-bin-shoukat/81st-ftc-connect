@@ -20,7 +20,7 @@ void main() {
       'section': 'A',
       'cadre': {'id': 'cadre-1', 'name': 'Test cadre'},
       'bcsBatch': null,
-      'homeDistrict': 'District',
+      'homeDistrict': 'Dhaka',
       'education': 'Degree',
       'university': 'University',
       'phone': 'Raw contact',
@@ -51,7 +51,7 @@ void main() {
             'cadres': [],
             'bcsBatches': [null],
             'bloodGroups': ['A'],
-            'homeDistricts': ['District'],
+            'homeDistricts': ['Dhaka'],
           };
         case '/me':
           data = person;
@@ -93,14 +93,15 @@ void main() {
     await tester.tap(find.byTooltip('Filter members'));
     await tester.pumpAndSettle();
     final districtFilter = find.byWidgetPredicate(
-      (widget) => widget is DropdownButtonFormField<String> &&
+      (widget) =>
+          widget is DropdownButtonFormField<String> &&
           widget.decoration.labelText == 'Home district',
     );
     await tester.ensureVisible(districtFilter);
     await tester.pumpAndSettle();
     await tester.tap(districtFilter);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('District').last);
+    await tester.tap(find.text('Dhaka').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Apply'));
     await tester.pumpAndSettle();
@@ -109,7 +110,7 @@ void main() {
           .lastWhere((r) => r.url.path == '/members')
           .url
           .queryParameters['homeDistrict'],
-      'District',
+      'Dhaka',
     );
     await tester.tap(find.text('My profile'));
     await tester.pumpAndSettle();

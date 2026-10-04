@@ -43,7 +43,7 @@ try {
       (19001, 'A', 'Synthetic member',
        (SELECT id FROM cadres WHERE name = 'Retention fixture'),
        'Degree', 'University', 'Synthetic contact', 'fixture@example.com',
-       'A+', 'District');
+       'A+', 'Dhaka');
     INSERT INTO accounts (member_id, login_phone, verification_method)
     VALUES ((SELECT id FROM members WHERE ftc_id = 19001),
             '+8801700019001', 'local');

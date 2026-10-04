@@ -105,6 +105,39 @@ export function normalizeCadre(value) {
   return Object.hasOwn(aliases, key) ? aliases[key] : raw;
 }
 
+// This legacy workbook is kept unchanged. Match its district spellings to the
+// canonical names before importing into a database with the 64-district rule.
+export function normalizeDistrict(value) {
+  const key = text(value).trim().toLowerCase();
+  const aliases = {
+    barisal: 'Barishal',
+    chittagong: 'Chattogram',
+    comilla: 'Cumilla',
+    "cox's bazar": "Cox's Bazar",
+    "cox'sbazar": "Cox's Bazar",
+    dhaja: 'Dhaka', // Confirmed by the roster owner for FTC 340.
+    gopalgonj: 'Gopalganj',
+    habigonj: 'Habiganj',
+    irangpur: 'Rangpur',
+    jessore: 'Jashore',
+    jhalokathi: 'Jhalakathi',
+    jhalokati: 'Jhalakathi',
+    khagrachari: 'Khagrachhari',
+    kishoregonj: 'Kishoreganj',
+    laxmipur: 'Lakshmipur',
+    naogao: 'Naogaon',
+    naraynaganj: 'Narayanganj',
+    narshandi: 'Narsingdi',
+    narshingdi: 'Narsingdi',
+    narsongdi: 'Narsingdi',
+    neteokona: 'Netrakona',
+    netrokona: 'Netrakona',
+    noagaon: 'Naogaon',
+    rajshashi: 'Rajshahi',
+  };
+  return aliases[key] ?? key.charAt(0).toUpperCase() + key.slice(1);
+}
+
 export function prepareRoster(rows) {
   const indices = Object.fromEntries(
     Object.entries(headings).map(([key, heading]) => {
@@ -231,7 +264,7 @@ export function prepareRoster(rows) {
         phone: text(data.phone),
         email: data.email,
         blood_group: text(data.blood_group),
-        home_district: text(data.home_district),
+        home_district: normalizeDistrict(data.home_district),
         about_me: nonblank(data.about_me) ? text(data.about_me) : null,
         favourite_quotation: nonblank(data.favourite_quotation)
           ? text(data.favourite_quotation)

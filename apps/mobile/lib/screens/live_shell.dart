@@ -269,7 +269,7 @@ class _LiveDirectoryState extends State<LiveDirectory> {
                   child: TextField(
                     controller: _search,
                     decoration: const InputDecoration(
-                      hintText: 'Search name, FTC ID, cadre, district',
+                      hintText: 'Search by name',
                       prefixIcon: Icon(Icons.search),
                     ),
                     onChanged: (_) {

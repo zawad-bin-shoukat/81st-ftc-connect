@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client.js';
+import { bangladeshDistrictSet } from './districts.js';
 
 export const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -64,17 +65,15 @@ export function parseMemberQuery(query: Record<string, unknown>) {
   const bloodGroup = text('bloodGroup', 500, false);
   const homeDistrict = text('homeDistrict', 100, false);
   if (bloodGroup) where.bloodGroup = bloodGroup;
-  if (homeDistrict) where.homeDistrict = homeDistrict;
-  if (q) {
-    // Escape SQL LIKE metacharacters so "%" and "_" are literal search text.
-    const contains = q.replace(/[\\%_]/g, '\\$&');
-    where.OR = [
-      { name: { contains, mode: 'insensitive' } },
-      { homeDistrict: { contains, mode: 'insensitive' } },
-      { cadre: { name: { contains, mode: 'insensitive' } } },
-    ];
-    if (/^\d+$/.test(q) && Number(q) <= 2147483647)
-      where.OR.push({ ftcId: Number(q) });
+  if (homeDistrict) {
+    if (!bangladeshDistrictSet.has(homeDistrict))
+      throw new BadRequestException('Choose one of the 64 Bangladesh districts.');
+    where.homeDistrict = homeDistrict;
   }
-  return { where, page, pageSize, skip: (page - 1) * pageSize };
+  return { where, q, page, pageSize, skip: (page - 1) * pageSize };
+}
+
+export function nameWordPattern(query: string) {
+  const literal = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return '(^|[^[:alnum:]])' + literal + '([^[:alnum:]]|$)';
 }
