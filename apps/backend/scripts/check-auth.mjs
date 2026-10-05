@@ -9,6 +9,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../dist/app.module.js';
 import { SmsBdDelivery } from '../dist/auth/sms-bd.delivery.js';
 import { PrismaService } from '../dist/database/prisma.service.js';
+import { PhotoStorageService } from '../dist/members/photo-storage.service.js';
+import sharp from 'sharp';
 
 // All mutation tests use a brand-new disposable DB, never the imported roster.
 const local = new URL(process.env.DATABASE_URL);
@@ -179,6 +181,68 @@ try {
     'Code must be consumed only once under concurrency.',
   );
   const token = simultaneous.find((r) => r.status === 200).data.token;
+  if (
+    process.env.R2_ACCOUNT_ID &&
+    process.env.R2_BUCKET &&
+    process.env.R2_ACCESS_KEY_ID &&
+    process.env.R2_SECRET_ACCESS_KEY
+  ) {
+    const image = await sharp({
+      create: {
+        width: 32,
+        height: 32,
+        channels: 3,
+        background: '#246824',
+      },
+    })
+      .jpeg()
+      .toBuffer();
+    const form = new FormData();
+    form.set('photo', new Blob([image], { type: 'image/jpeg' }), 'test.jpg');
+    try {
+      check(
+        (
+          await fetch(base + '/me/photo', {
+            method: 'POST',
+            body: form,
+            signal: AbortSignal.timeout(30000),
+          })
+        ).status === 401,
+        'Unauthenticated photo upload was accepted.',
+      );
+      const uploaded = await fetch(base + '/me/photo', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+        body: form,
+        signal: AbortSignal.timeout(30000),
+      });
+      check(uploaded.status === 201, 'Synthetic photo upload failed.');
+      const own = await call('GET', '/me', undefined, token);
+      check(
+        own.status === 200 && own.data.photoUrl?.startsWith('https://'),
+        'Own profile did not return a private photo URL.',
+      );
+      const imageResponse = await fetch(own.data.photoUrl, {
+        signal: AbortSignal.timeout(30000),
+      });
+      check(
+        imageResponse.status === 200 &&
+          (await imageResponse.arrayBuffer()).byteLength > 0,
+        'Private photo URL could not load the synthetic image.',
+      );
+      const removed = await call('DELETE', '/me/photo', undefined, token);
+      check(removed.status === 200, 'Synthetic photo removal failed.');
+      check(
+        (await call('GET', '/me', undefined, token)).data.photoUrl === null,
+        'Removed photo still appears on the member profile.',
+      );
+    } finally {
+      const stored = await db.member.findUnique({ where: { id: first.id } });
+      if (stored?.profilePhotoKey) {
+        await app.get(PhotoStorageService).remove(stored.profilePhotoKey);
+      }
+    }
+  }
   const account = await db.account.findUnique({
     where: { memberId: first.id },
   });

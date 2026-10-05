@@ -6,7 +6,7 @@ Signed-in members can choose **My profile → Delete my account** and type `DELE
 
 The web page offers the same deletion after phone OTP verification, plus a public support email for people unable to sign in. Support must verify ownership before manually handling a request. Do not ask users to email OTP codes. The web page keeps its session token in browser memory only.
 
-The scheduled Mac backups are retained for roughly 30 days. Deleting an account removes it from the live app database immediately, but older backup copies can still contain it until rotation. **Do not restore a backup over the live database without reapplying every deletion and profile change made after that backup.** Likewise, any future roster import must exclude members who deleted their app profile, or it would recreate them. When photo upload is added, deletion must remove stored photo objects too.
+The scheduled Mac backups are retained for roughly 30 days. Deleting an account removes it from the live app database immediately, but older backup copies can still contain it until rotation. **Do not restore a backup over the live database without reapplying every deletion and profile change made after that backup.** Likewise, any future roster import must exclude members who deleted their app profile, or it would recreate them. Account deletion now removes stored R2 photo objects before removing the profile. The original organizer photo source and any separate photo backups require their own retention/deletion process.
 
 ## Scheduled retention cleanup
 

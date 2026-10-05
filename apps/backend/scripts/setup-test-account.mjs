@@ -27,6 +27,17 @@ try {
     throw new Error(
       'Existing test identity uses another number. Review manually; no identity was reassigned.',
     );
+  if (!existing) {
+    const phoneOwner = await db.testAccount.findUnique({
+      where: { phone: config.phone },
+    });
+    if (phoneOwner)
+      throw new Error(
+        'That phone is already assigned to test ID ' +
+          phoneOwner.testId +
+          '. Use a different local-only test phone; no account was created.',
+      );
+  }
   if (!existing)
     await db.testAccount.create({
       data: {

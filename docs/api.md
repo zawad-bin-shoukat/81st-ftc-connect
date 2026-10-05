@@ -52,6 +52,8 @@ Directory summaries contain id, ftcId, name, section, cadre, bcsBatch, and homeD
 
 ## Pending integration
 
-Direct roster-phone enrollment with local test codes or configured sms.bd delivery, session expiry/revocation, member-session directory access, and PATCH /me are implemented. Flutter uses these sessions rather than the developer credential. One real-phone SMS login and returning login have succeeded locally; broader carrier/device testing, account recovery, and photo storage remain pending. POST /auth/registration records pending membership requests but grants no access; administrators can approve or reject requests in the app. There is no endpoint to edit other members.
+Direct roster-phone enrollment with local test codes or configured SMS delivery, session expiry/revocation, member-session directory access, and PATCH /me are implemented. Flutter uses these sessions rather than the developer credential. One real-phone SMS login and returning login have succeeded locally; broader carrier/device testing and account recovery remain pending. The photo API passed an isolated synthetic upload/download/delete check against R2, and upload/persistence/removal passed on the local iPhone simulator with a separate test account. Android and hosted photo testing remain pending. POST /auth/registration records pending membership requests but grants no access; administrators can approve or reject requests in the app. There is no endpoint to edit other members.
 
 Implementation references: [NestJS guards](https://docs.nestjs.com/guards) and [Prisma reading data](https://www.prisma.io/docs/orm/fundamentals/reading-data).
+
+Photo endpoints (authenticated): `POST /me/photo` accepts one multipart `photo` field up to 8 MB, and `DELETE /me/photo` removes it. Profile and directory responses include a five-minute signed `photoUrl` when a photo exists. The bucket remains private; R2 credentials are backend-only.

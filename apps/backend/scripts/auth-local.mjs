@@ -42,7 +42,9 @@ async function main() {
     process.env.NODE_ENV !== 'development' ||
     process.env.OTP_MODE !== 'local'
   )
-    throw new Error('Run auth:setup first.');
+    throw new Error(
+      'Local code lookup requires NODE_ENV=development OTP_MODE=local.',
+    );
   const client = new pg.Client({ connectionString: url.toString() });
   await client.connect();
   try {
@@ -102,10 +104,18 @@ async function main() {
       const {
         rows: [challenge],
       } = await client.query(
-        'SELECT id FROM otp_challenges WHERE member_id IS NOT NULL AND consumed_at IS NULL AND attempts<5 AND expires_at>now()' +
-          (argument ? ' AND id=$1::uuid' : '') +
-          ' ORDER BY created_at DESC LIMIT 1',
-        argument ? [argument] : [],
+        `SELECT id FROM (
+           SELECT id, created_at FROM otp_challenges
+           WHERE member_id IS NOT NULL AND delivery_mode='local'
+             AND consumed_at IS NULL AND attempts<5 AND expires_at>now()
+           UNION ALL
+           SELECT id, created_at FROM test_otp_challenges
+           WHERE test_account_id IS NOT NULL AND delivery_mode='local'
+             AND consumed_at IS NULL AND attempts<5 AND expires_at>now()
+         ) AS active
+         WHERE ($1::uuid IS NULL OR id=$1::uuid)
+         ORDER BY created_at DESC LIMIT 1`,
+        [argument ?? null],
       );
       if (!challenge)
         throw new Error(

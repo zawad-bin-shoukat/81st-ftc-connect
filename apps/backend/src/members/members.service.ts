@@ -10,6 +10,7 @@ import { PrismaService } from '../database/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { nameWordPattern, parseMemberQuery } from './member-query.js';
 import { bangladeshDistricts } from './districts.js';
+import { PhotoStorageService } from './photo-storage.service.js';
 
 const summarySelect = {
   id: true,
@@ -19,11 +20,15 @@ const summarySelect = {
   cadre: { select: { id: true, name: true } },
   bcsBatch: true,
   homeDistrict: true,
+  profilePhotoKey: true,
 } satisfies Prisma.MemberSelect;
 
 @Injectable()
 export class MembersService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(PhotoStorageService) private readonly photos: PhotoStorageService,
+  ) {}
 
   async updateOwn(memberId: string, body: unknown) {
     const data = profileInput(body);
@@ -76,7 +81,14 @@ export class MembersService {
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
     );
     return {
-      items,
+      items: await Promise.all(
+        items.map(async ({ profilePhotoKey, ...member }) => ({
+          ...member,
+          photoUrl: profilePhotoKey
+            ? await this.photos.readUrl(profilePhotoKey, 'thumb')
+            : null,
+        })),
+      ),
       total,
       page,
       pageSize,
@@ -100,7 +112,13 @@ export class MembersService {
     });
     if (!member) throw new NotFoundException('Member not found.');
     // Storage keys, verification status, and internal timestamps stay private.
-    return member;
+    const { profilePhotoKey, ...detail } = member;
+    return {
+      ...detail,
+      photoUrl: profilePhotoKey
+        ? await this.photos.readUrl(profilePhotoKey, 'full')
+        : null,
+    };
   }
 
   async filters() {

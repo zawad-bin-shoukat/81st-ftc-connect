@@ -105,6 +105,53 @@ class ApiClient extends ChangeNotifier {
     return data;
   }
 
+  Future<void> uploadPhoto(Uint8List bytes) async {
+    if (bytes.isEmpty || bytes.length > 8 * 1024 * 1024) {
+      throw ApiException('Choose a photo smaller than 8 MB.');
+    }
+    final uri = Uri.parse('$baseUrl/me/photo');
+    if (kReleaseMode && uri.scheme != 'https') {
+      throw ApiException(
+        'A secure server address is required for release builds.',
+      );
+    }
+    final message = http.MultipartRequest('POST', uri);
+    message.headers['Accept'] = 'application/json';
+    if (_token != null) message.headers['Authorization'] = 'Bearer $_token';
+    message.files.add(
+      http.MultipartFile.fromBytes('photo', bytes, filename: 'profile.jpg'),
+    );
+    http.Response response;
+    try {
+      final sent = await _client
+          .send(message)
+          .timeout(const Duration(seconds: 60));
+      response = await http.Response.fromStream(sent)
+          .timeout(const Duration(seconds: 60));
+    } on TimeoutException {
+      throw ApiException('The photo upload took too long. Please retry.');
+    } on Exception {
+      throw ApiException(
+        'Cannot upload the photo. Check your connection and retry.',
+      );
+    }
+    if (response.statusCode == 401 && _token != null) await forgetSession();
+    if (response.statusCode >= 400) {
+      try {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        throw ApiException(
+          data['message']?.toString() ?? 'Photo upload failed.',
+          response.statusCode,
+        );
+      } on FormatException {
+        throw ApiException(
+          'Photo upload failed. Please retry.',
+          response.statusCode,
+        );
+      }
+    }
+  }
+
   Future<void> acceptSession(String token) async {
     _token = token;
     try {

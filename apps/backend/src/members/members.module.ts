@@ -6,6 +6,8 @@ import { MeController } from './me.controller.js';
 import { LocalApiGuard } from './local-api.guard.js';
 import { MembersController } from './members.controller.js';
 import { MembersService } from './members.service.js';
+import { PhotoStorageService } from './photo-storage.service.js';
+import { MemberPhotoService } from './member-photo.service.js';
 import { AccountDeletionService } from './account-deletion.service.js';
 
 @Module({
@@ -14,6 +16,8 @@ import { AccountDeletionService } from './account-deletion.service.js';
   providers: [
     MembersService,
     AccountDeletionService,
+    PhotoStorageService,
+    MemberPhotoService,
     LocalApiGuard,
     DirectoryAccessGuard,
   ],

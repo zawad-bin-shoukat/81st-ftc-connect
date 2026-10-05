@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../api_client.dart';
+import '../profile_photo.dart';
 import 'live_profile_screen.dart';
 
 class LiveShell extends StatefulWidget {
@@ -331,8 +332,9 @@ class _LiveDirectoryState extends State<LiveDirectory> {
                         for (final raw in _items)
                           Card(
                             child: ListTile(
-                              leading: const CircleAvatar(
-                                child: Icon(Icons.person_outline),
+                              leading: ProfilePhoto(
+                                url: raw['photoUrl'] as String?,
+                                size: 40,
                               ),
                               title: Text(raw['name'] as String),
                               subtitle: Text(

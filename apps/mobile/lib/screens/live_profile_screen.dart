@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../api_client.dart';
+import '../profile_photo.dart';
 import '../districts.dart';
 import '../contact_actions.dart';
 import 'membership_review_screen.dart';
@@ -48,6 +50,56 @@ class LiveProfileScreen extends StatefulWidget {
 
 class _LiveProfileScreenState extends State<LiveProfileScreen> {
   late Future<Map<String, dynamic>> _profile = _fetch();
+  bool _photoBusy = false;
+
+  Future<void> _changePhoto() async {
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        imageQuality: 85,
+        requestFullMetadata: false,
+      );
+      if (picked == null || !mounted) return;
+      setState(() => _photoBusy = true);
+      await widget.api.uploadPhoto(await picked.readAsBytes());
+      if (mounted) {
+        setState(() {
+          _profile = _fetch();
+        });
+        widget.onUpdated?.call();
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    } finally {
+      if (mounted) setState(() => _photoBusy = false);
+    }
+  }
+
+  Future<void> _removePhoto() async {
+    setState(() => _photoBusy = true);
+    try {
+      await widget.api.request('DELETE', '/me/photo');
+      if (mounted) {
+        setState(() {
+          _profile = _fetch();
+        });
+        widget.onUpdated?.call();
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    } finally {
+      if (mounted) setState(() => _photoBusy = false);
+    }
+  }
+
   Future<Map<String, dynamic>> _fetch() => widget.api.request(
     'GET',
     widget.memberId == null ? '/me' : '/members/${widget.memberId!}',
@@ -128,7 +180,27 @@ class _LiveProfileScreenState extends State<LiveProfileScreen> {
                     ),
                   ),
                 ),
-              const Icon(Icons.account_circle_outlined, size: 88),
+              Center(
+                child: ProfilePhoto(
+                  url: data['photoUrl'] as String?,
+                  size: 128,
+                ),
+              ),
+              if (widget.memberId == null) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: _photoBusy ? null : _changePhoto,
+                  icon: const Icon(Icons.add_a_photo_outlined),
+                  label: Text(
+                    _photoBusy ? 'Saving photo…' : 'Choose profile photo',
+                  ),
+                ),
+                if (data['photoUrl'] != null)
+                  TextButton(
+                    onPressed: _photoBusy ? null : _removePhoto,
+                    child: const Text('Remove photo'),
+                  ),
+              ],
               Text(
                 data['name'] as String,
                 textAlign: TextAlign.center,

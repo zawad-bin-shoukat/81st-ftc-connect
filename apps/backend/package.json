@@ -29,6 +29,8 @@
     "db:verify": "node scripts/verify-schema.mjs",
     "roster:preview": "node scripts/preview-roster.mjs",
     "roster:import": "node scripts/import-roster.mjs",
+    "photos:import": "node scripts/import-photos.mjs",
+    "test:photos": "node --test scripts/lib/photo-import.test.mjs",
     "test:roster": "node --test scripts/lib/roster.test.mjs",
     "test:import": "node --test scripts/lib/import-roster.test.mjs",
     "api:check": "node scripts/check-members-api.mjs",
@@ -41,6 +43,8 @@
     "test-account:setup": "node scripts/setup-test-account.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@aws-sdk/s3-request-presigner": "^3.1146.0",
     "@nestjs/common": "^12.0.1",
     "@nestjs/core": "^12.0.1",
     "@nestjs/platform-express": "^12.0.1",
@@ -50,13 +54,15 @@
     "pg": "^8.16.3",
     "read-excel-file": "^9.3.10",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.0",
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",
     "@types/express": "^5.0.0",
+    "@types/multer": "^2.3.0",
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.0.0",
     "@vitest/coverage-v8": "^4.1.2",

@@ -161,7 +161,7 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                       ),
                       const SizedBox(height: 8),
                       SelectableText(
-                        './scripts/backend.sh auth:code -- ${_challenge['challengeId'] as String}',
+                        'NODE_ENV=development OTP_MODE=local ./scripts/backend.sh auth:code -- ${_challenge['challengeId'] as String}',
                       ),
                       const SizedBox(height: 8),
                       const Text(
