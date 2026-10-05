@@ -16,12 +16,19 @@ void main() {
     expect(find.text('Example Member A'), findsOneWidget);
     expect(find.text('Example Member B'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField).first, 'Police');
+    final searchField = find.byType(TextField).first;
+    await tester.enterText(searchField, 'Police');
     await tester.pump();
     expect(find.text('Example Member A'), findsNothing);
-    expect(find.text('Example Member B'), findsOneWidget);
+    expect(find.text('Example Member B'), findsNothing);
 
-    await tester.tap(find.text('Example Member B'));
+    await tester.enterText(searchField, 'Example Member B');
+    await tester.pump();
+    expect(find.text('Example Member A'), findsNothing);
+    final memberBCard = find.widgetWithText(ListTile, 'Example Member B');
+    expect(memberBCard, findsOneWidget);
+
+    await tester.tap(memberBCard);
     await tester.pumpAndSettle();
     expect(find.text('Member profile'), findsOneWidget);
     expect(find.text('Unknown'), findsOneWidget);
