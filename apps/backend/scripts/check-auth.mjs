@@ -180,7 +180,14 @@ try {
     simultaneous.filter((r) => r.status === 200).length === 1,
     'Code must be consumed only once under concurrency.',
   );
-  const token = simultaneous.find((r) => r.status === 200).data.token;
+  const accepted = simultaneous.find((r) => r.status === 200).data;
+  const token = accepted.token;
+  const sessionDuration = Date.parse(accepted.expiresAt) - Date.now();
+  check(
+    sessionDuration > 179 * 24 * 60 * 60 * 1000 &&
+      sessionDuration <= 180 * 24 * 60 * 60 * 1000,
+    'A new member session must expire after 180 days.',
+  );
   if (
     process.env.R2_ACCOUNT_ID &&
     process.env.R2_BUCKET &&

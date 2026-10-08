@@ -88,7 +88,7 @@ PATCH /me allows name, education, university, phone (display contact), email, bl
 - Codes are six random digits, expire after five minutes, allow at most five verification attempts, and are stored as keyed hashes. A newer code invalidates earlier challenges for that phone.
 - Database row locks serialize verification and invitation consumption; one invite cannot create two accounts.
 - Database rate limits persist across server restarts: code requests are limited to 5 per phone and 30 per peer per 15-minute fixed window; resend cooldown allows one per phone per 60-second fixed window. Verification permits 60 attempts per peer per 15-minute window, with the stricter per-challenge five-attempt limit.
-- Sessions contain 256 bits of randomness, expire after 30 days, and are stored as hashes. Logout revokes the current session. Inactive members cannot use existing sessions.
+- Sessions contain 256 bits of randomness, expire after 180 days, and are stored as hashes. Logout revokes the current session. Inactive members cannot use existing sessions.
 - Flutter uses platform secure storage for mobile bearer tokens. The optional browser preview keeps tokens only in memory. Network failures display retry states; they do not replace real data with fictional records.
 
 ## Development networking

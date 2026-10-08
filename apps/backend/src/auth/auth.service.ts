@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service.js';
+import { AUTH_SESSION_TTL_MS } from './auth.constants.js';
 import { Prisma } from '../generated/prisma/client.js';
 import {
   codeDigest,
@@ -169,7 +170,7 @@ export class AuthService {
     )
       throw new BadRequestException('Enter the six-digit code.');
     const token = randomBytes(32).toString('base64url');
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + AUTH_SESSION_TTL_MS);
     let memberId: string | null;
     try {
       memberId = await this.prisma.$transaction(async (tx) => {

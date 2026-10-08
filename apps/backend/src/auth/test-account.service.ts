@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service.js';
+import { AUTH_SESSION_TTL_MS } from './auth.constants.js';
 import { Prisma } from '../generated/prisma/client.js';
 import {
   authConfig,
@@ -155,7 +156,7 @@ export class TestAccountService {
     )
       throw new BadRequestException('Enter the six-digit code.');
     const token = 'test_' + randomBytes(32).toString('base64url');
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + AUTH_SESSION_TTL_MS);
     const testAccountId = await this.db.$transaction(async (tx) => {
       await tx.$queryRawUnsafe(
         'SELECT id FROM test_otp_challenges WHERE id=$1::uuid FOR UPDATE',
