@@ -33,6 +33,7 @@
     "roster:publish-neon": "node scripts/publish-roster-additions-neon.mjs",
     "photos:import": "node scripts/import-photos.mjs",
     "photos:publish-neon": "node scripts/publish-photos-neon.mjs",
+    "photos:publish-additions": "node scripts/publish-addition-photos-neon.mjs",
     "test:photos": "node --test scripts/lib/photo-import.test.mjs",
     "test:photos-neon": "node --test scripts/lib/neon-photo-import.test.mjs",
     "test:roster": "node --test scripts/lib/roster.test.mjs",
