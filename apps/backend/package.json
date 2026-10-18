@@ -29,6 +29,8 @@
     "db:verify": "node scripts/verify-schema.mjs",
     "roster:preview": "node scripts/preview-roster.mjs",
     "roster:import": "node scripts/import-roster.mjs",
+    "roster:additions": "node scripts/import-roster-additions.mjs",
+    "roster:publish-neon": "node scripts/publish-roster-additions-neon.mjs",
     "photos:import": "node scripts/import-photos.mjs",
     "photos:publish-neon": "node scripts/publish-photos-neon.mjs",
     "test:photos": "node --test scripts/lib/photo-import.test.mjs",

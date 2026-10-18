@@ -1,5 +1,9 @@
 // One atomic import; reruns accept identical rows but never overwrite a profile.
-export async function importRoster(client, members, { apply = false } = {}) {
+export async function importRoster(
+  client,
+  members,
+  { apply = false, expected } = {},
+) {
   const fields = [
     'ftc_id',
     'section',
@@ -89,6 +93,13 @@ export async function importRoster(client, members, { apply = false } = {}) {
     } = await client.query(
       'SELECT (SELECT count(*)::int FROM members) AS members, (SELECT count(*)::int FROM cadres) AS cadres',
     );
+    if (
+      expected &&
+      (inserted !== expected.inserted || counts.members !== expected.members)
+    )
+      throw new Error(
+        'Roster totals changed during import; transaction rolled back.',
+      );
     await client.query(apply ? 'COMMIT' : 'ROLLBACK');
     return {
       mode: apply ? 'applied' : 'dry-run (rolled back)',
