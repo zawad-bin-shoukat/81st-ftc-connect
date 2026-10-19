@@ -2,7 +2,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:allowBackup="false"
-        android:label="ftc_connect"
+        android:label="81st FTC Connect"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

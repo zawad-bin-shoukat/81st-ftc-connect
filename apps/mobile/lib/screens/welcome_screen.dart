@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'phone_sign_in_screen.dart';
@@ -28,22 +29,36 @@ class WelcomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Align(
-                        child: CircleAvatar(
-                          radius: 48,
-                          backgroundColor: colors.primaryContainer,
-                          child: Icon(
-                            Icons.groups_rounded,
-                            size: 52,
-                            color: colors.primary,
+                        child: GestureDetector(
+                          onLongPress: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const TestSignInScreen(),
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: 48,
+                            backgroundColor: colors.primaryContainer,
+                            child: Icon(
+                              Icons.groups_rounded,
+                              size: 52,
+                              color: colors.primary,
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 30),
-                      Text(
-                        '81st FTC Connect',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                      GestureDetector(
+                        onLongPress: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const PreviewShell(readOnly: true),
+                          ),
+                        ),
+                        child: Text(
+                          '81st FTC Connect',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Text(
@@ -61,30 +76,32 @@ class WelcomeScreen extends StatelessWidget {
                         icon: const Icon(Icons.phone_iphone),
                         label: const Text('Sign in with phone'),
                       ),
-                      const SizedBox(height: 12),
-                      OutlinedButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const PreviewShell(),
+                      if (!kReleaseMode) ...[
+                        const SizedBox(height: 12),
+                        OutlinedButton(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const PreviewShell(),
+                            ),
                           ),
+                          child: const Text('Explore interface preview'),
                         ),
-                        child: const Text('Explore interface preview'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const TestSignInScreen(),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const TestSignInScreen(),
+                            ),
                           ),
+                          child: const Text('Administrator / test sign-in'),
                         ),
-                        child: const Text('Administrator / test sign-in'),
-                      ),
+                      ],
                       TextButton(
                         onPressed: () => openPrivacyPolicy(context),
                         child: const Text('Privacy policy'),
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Sign in to view the real roster. Interface preview uses fictional profiles.',
+                        kReleaseMode ? 'Sign in to view the member directory.' : 'Sign in to view the real roster. Interface preview uses fictional profiles.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),

@@ -30,6 +30,7 @@ class ApiClient extends ChangeNotifier {
   static String get baseUrl {
     const configured = String.fromEnvironment('API_BASE_URL');
     if (configured.isNotEmpty) return configured.replaceAll(RegExp(r'/$'), '');
+    if (kReleaseMode) return 'https://eight1st-ftc-connect.onrender.com';
     return !kIsWeb && defaultTargetPlatform == TargetPlatform.android
         ? 'http://10.0.2.2:3000'
         : 'http://127.0.0.1:3000';

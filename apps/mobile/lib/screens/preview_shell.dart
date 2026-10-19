@@ -5,7 +5,9 @@ import 'directory_screen.dart';
 import 'my_profile_screen.dart';
 
 class PreviewShell extends StatefulWidget {
-  const PreviewShell({super.key});
+  const PreviewShell({this.readOnly = false, super.key});
+
+  final bool readOnly;
 
   @override
   State<PreviewShell> createState() => _PreviewShellState();
@@ -17,6 +19,28 @@ class _PreviewShellState extends State<PreviewShell> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.readOnly) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Review demo')),
+        body: Column(
+          children: [
+            MaterialBanner(
+              content: const Text(
+                'Review demo · fictional profiles · read-only',
+              ),
+              leading: const Icon(Icons.visibility_outlined),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Exit'),
+                ),
+              ],
+            ),
+            const Expanded(child: DirectoryScreen()),
+          ],
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(_selectedIndex == 0 ? 'Member directory' : 'My profile'),

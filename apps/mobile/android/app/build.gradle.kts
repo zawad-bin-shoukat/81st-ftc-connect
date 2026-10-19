@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.ftc_connect"
+    namespace = "com.ahmedapps.ftc"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,8 +15,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.ftc_connect"
+        // Replace this before the first Play Console upload with the registered package name.
+        applicationId = "com.ahmedapps.ftc"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -29,11 +29,31 @@ android {
         versionName = flutter.versionName
     }
 
+    val releaseKeyFile = System.getenv("FTC_ANDROID_KEYSTORE")
+    val releaseKeyAlias = System.getenv("FTC_ANDROID_KEY_ALIAS")
+    val releaseStorePassword = System.getenv("FTC_ANDROID_STORE_PASSWORD")
+    val releaseKeyPassword = System.getenv("FTC_ANDROID_KEY_PASSWORD")
+
+    signingConfigs {
+        create("release") {
+            if (!releaseKeyFile.isNullOrBlank() && !releaseKeyAlias.isNullOrBlank() &&
+                !releaseStorePassword.isNullOrBlank() && !releaseKeyPassword.isNullOrBlank()) {
+                storeFile = file(releaseKeyFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            if (gradle.startParameter.taskNames.any { it.contains("release", ignoreCase = true) } &&
+                (releaseKeyFile.isNullOrBlank() || releaseKeyAlias.isNullOrBlank() ||
+                    releaseStorePassword.isNullOrBlank() || releaseKeyPassword.isNullOrBlank())) {
+                throw GradleException("Set the FTC_ANDROID_* signing environment variables before building a release.")
+            }
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

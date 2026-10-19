@@ -1,7 +1,7 @@
 name: ftc_connect
-description: "81st FTC Connect mobile starter."
+description: "Private member directory for the 81st FTC cohort."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.13.4

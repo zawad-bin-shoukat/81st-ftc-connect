@@ -1,5 +1,7 @@
 # Release roadmap (4 October 2026)
 
+This historical plan is superseded by [store-release-checklist.md](store-release-checklist.md). Its roster and deployment counts are no longer current.
+
 This file separates implemented behavior from unfinished release work. It contains no credentials or participant data.
 
 ## Implemented and verified locally

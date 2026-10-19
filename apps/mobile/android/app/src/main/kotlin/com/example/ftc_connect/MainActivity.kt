@@ -1,4 +1,4 @@
-package com.example.ftc_connect
+package com.ahmedapps.ftc
 
 import io.flutter.embedding.android.FlutterActivity
 
