@@ -3,16 +3,19 @@ import 'package:flutter/material.dart';
 import '../preview_member.dart';
 import 'edit_profile_screen.dart';
 import 'member_detail_screen.dart';
+import '../privacy_link.dart';
 
 class MyProfileScreen extends StatelessWidget {
   const MyProfileScreen({
     required this.member,
     required this.onChanged,
+    this.onDeleteDemo,
     super.key,
   });
 
   final PreviewMember member;
   final ValueChanged<PreviewMember> onChanged;
+  final VoidCallback? onDeleteDemo;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +25,13 @@ class MyProfileScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Icon(Icons.account_circle_outlined, size: 88),
+            if (member.photoBytes != null)
+              CircleAvatar(
+                radius: 44,
+                backgroundImage: MemoryImage(member.photoBytes!),
+              )
+            else
+              const Icon(Icons.account_circle_outlined, size: 88),
             const SizedBox(height: 12),
             Text(
               member.name,
@@ -64,6 +73,38 @@ class MyProfileScreen extends StatelessWidget {
                   'This is a fictional profile. Edits are kept only in memory and are lost when the preview closes.',
                 ),
               ),
+            ),
+            if (onDeleteDemo != null) ...[
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('Delete demo profile?'),
+                      content: const Text(
+                        'This clears the temporary fictional profile and closes the demo. You can sign in again with the same reviewer credentials. No member data is affected.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: const Text('Cancel'),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          child: const Text('Delete demo profile'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true) onDeleteDemo?.call();
+                },
+                child: const Text('Delete demo profile'),
+              ),
+            ],
+            TextButton(
+              onPressed: () => openPrivacyPolicy(context),
+              child: const Text('Privacy policy'),
             ),
           ],
         ),

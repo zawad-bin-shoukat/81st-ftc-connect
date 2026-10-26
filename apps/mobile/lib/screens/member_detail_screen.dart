@@ -17,7 +17,13 @@ class MemberDetailScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Icon(Icons.account_circle_outlined, size: 88),
+              if (member.photoBytes != null)
+                CircleAvatar(
+                  radius: 44,
+                  backgroundImage: MemoryImage(member.photoBytes!),
+                )
+              else
+                const Icon(Icons.account_circle_outlined, size: 88),
               const SizedBox(height: 12),
               Text(
                 member.name,

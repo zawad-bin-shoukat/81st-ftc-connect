@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import 'dart:typed_data';
 
 import '../preview_member.dart';
 import '../districts.dart';
@@ -14,6 +17,44 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  Uint8List? _photoBytes;
+  bool _pickingPhoto = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _photoBytes = widget.member.photoBytes;
+  }
+
+  Future<void> _choosePhoto() async {
+    setState(() => _pickingPhoto = true);
+    try {
+      final selected = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        maxHeight: 1200,
+      );
+      if (selected == null) return;
+      final bytes = await selected.readAsBytes();
+      if (!mounted) return;
+      if (bytes.length > 8 * 1024 * 1024) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Choose a photo smaller than 8 MB.')),
+        );
+        return;
+      }
+      setState(() => _photoBytes = bytes);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open that photo.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _pickingPhoto = false);
+    }
+  }
+
   late final Map<String, TextEditingController> _fields = {
     'name': TextEditingController(text: widget.member.name),
     'education': TextEditingController(text: widget.member.education),
@@ -83,6 +124,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         homeDistrict: value('homeDistrict'),
         aboutMe: value('aboutMe'),
         favouriteQuotation: value('favouriteQuotation'),
+        photoBytes: _photoBytes,
       ),
     );
   }
@@ -108,13 +150,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Card(
-                  child: ListTile(
-                    leading: Icon(Icons.add_a_photo_outlined),
-                    title: Text('Profile photo'),
-                    subtitle: Text(
-                      'Photo upload will be available after storage is connected.',
-                    ),
+                Card(
+                  child: Column(
+                    children: [
+                      if (_photoBytes != null)
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Image.memory(
+                            _photoBytes!,
+                            height: 120,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ListTile(
+                        leading: const Icon(Icons.add_a_photo_outlined),
+                        title: const Text('Profile photo'),
+                        subtitle: const Text(
+                          'Demo photos stay only in memory on this device.',
+                        ),
+                        trailing: TextButton(
+                          onPressed: _pickingPhoto ? null : _choosePhoto,
+                          child: const Text('Choose'),
+                        ),
+                      ),
+                      if (_photoBytes != null)
+                        TextButton(
+                          onPressed: () => setState(() => _photoBytes = null),
+                          child: const Text('Remove demo photo'),
+                        ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -127,9 +191,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: DropdownButtonFormField<String>(
-                    initialValue: bangladeshDistricts.contains(
-                      _fields['homeDistrict']!.text,
-                    )
+                    initialValue:
+                        bangladeshDistricts.contains(
+                          _fields['homeDistrict']!.text,
+                        )
                         ? _fields['homeDistrict']!.text
                         : null,
                     isExpanded: true,

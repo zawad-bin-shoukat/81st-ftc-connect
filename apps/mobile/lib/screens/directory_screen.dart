@@ -4,7 +4,9 @@ import '../preview_member.dart';
 import 'member_detail_screen.dart';
 
 class DirectoryScreen extends StatefulWidget {
-  const DirectoryScreen({super.key});
+  const DirectoryScreen({this.members = previewMembers, super.key});
+
+  final List<PreviewMember> members;
 
   @override
   State<DirectoryScreen> createState() => _DirectoryScreenState();
@@ -23,7 +25,7 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
   @override
   Widget build(BuildContext context) {
     final query = _searchController.text.trim().toLowerCase();
-    final members = previewMembers.where((member) {
+    final members = widget.members.where((member) {
       final matchesSection = _section == 'All' || member.section == _section;
       final matchesQuery =
           query.isEmpty ||

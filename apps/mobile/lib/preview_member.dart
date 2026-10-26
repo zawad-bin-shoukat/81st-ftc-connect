@@ -1,4 +1,6 @@
-/// Fictional records for exploring the interface before the member API exists.
+import 'dart:typed_data';
+
+/// Fictional records used only in the on-device reviewer/demo sandbox.
 class PreviewMember {
   const PreviewMember({
     required this.name,
@@ -14,6 +16,7 @@ class PreviewMember {
     required this.homeDistrict,
     this.aboutMe = '',
     this.favouriteQuotation = '',
+    this.photoBytes,
   });
 
   final String name;
@@ -29,6 +32,7 @@ class PreviewMember {
   final String homeDistrict;
   final String aboutMe;
   final String favouriteQuotation;
+  final Uint8List? photoBytes;
 }
 
 const previewMembers = [

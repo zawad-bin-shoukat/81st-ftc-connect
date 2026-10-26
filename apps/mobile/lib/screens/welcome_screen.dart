@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'phone_sign_in_screen.dart';
 import 'preview_shell.dart';
+import 'reviewer_sign_in_screen.dart';
 import 'test_sign_in_screen.dart';
 import '../privacy_link.dart';
 
@@ -75,6 +76,16 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                         icon: const Icon(Icons.phone_iphone),
                         label: const Text('Sign in with phone'),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const ReviewerSignInScreen(),
+                          ),
+                        ),
+                        icon: const Icon(Icons.visibility_outlined),
+                        label: const Text('Reviewer demo'),
                       ),
                       if (!kReleaseMode) ...[
                         const SizedBox(height: 12),
