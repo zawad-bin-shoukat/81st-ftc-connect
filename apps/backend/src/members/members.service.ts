@@ -11,6 +11,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import { nameWordPattern, parseMemberQuery } from './member-query.js';
 import { bangladeshDistricts } from './districts.js';
 import { PhotoStorageService } from './photo-storage.service.js';
+import { officialCadres } from './official-cadres.js';
 
 const summarySelect = {
   id: true,
@@ -132,7 +133,7 @@ export class MembersService {
             orderBy: { section: 'asc' },
           }),
           this.prisma.cadre.findMany({
-            where: { members: { some: { isActive: true } } },
+            where: { name: { in: [...officialCadres] } },
             select: { id: true, name: true },
             orderBy: { name: 'asc' },
           }),

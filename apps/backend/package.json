@@ -31,6 +31,7 @@
     "roster:import": "node scripts/import-roster.mjs",
     "roster:additions": "node scripts/import-roster-additions.mjs",
     "roster:publish-neon": "node scripts/publish-roster-additions-neon.mjs",
+    "cadres:normalize-neon": "node scripts/normalize-cadres-neon.mjs",
     "photos:import": "node scripts/import-photos.mjs",
     "photos:publish-neon": "node scripts/publish-photos-neon.mjs",
     "photos:publish-additions": "node scripts/publish-addition-photos-neon.mjs",

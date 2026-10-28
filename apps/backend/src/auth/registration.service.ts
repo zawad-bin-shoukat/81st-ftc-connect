@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
+import { officialCadres } from '../members/official-cadres.js';
 import {
   loginPhone,
   objectBody,
@@ -144,8 +145,9 @@ export class RegistrationService {
       if (!(key in details))
         throw new BadRequestException('Missing ' + key + '.');
     const profile = profileInput(details);
-    if (!(await this.db.cadre.findUnique({ where: { id: cadreId } })))
-      throw new BadRequestException('Choose an existing cadre.');
+    const cadre = await this.db.cadre.findUnique({ where: { id: cadreId } });
+    if (!cadre || !officialCadres.some((name) => name === cadre.name))
+      throw new BadRequestException('Choose an official cadre.');
     try {
       return await this.db.$transaction(
         async (tx) => {
