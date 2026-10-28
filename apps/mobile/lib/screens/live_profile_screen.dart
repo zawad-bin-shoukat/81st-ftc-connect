@@ -282,6 +282,12 @@ class LiveEditProfile extends StatefulWidget {
 }
 
 class _LiveEditProfileState extends State<LiveEditProfile> {
+  static const rosterManagedFields = {
+    'name',
+    'bloodGroup',
+    'homeDistrict',
+    'bcsBatch',
+  };
   static const labels = {
     'name': 'Name',
     'education': 'Education',
@@ -297,7 +303,9 @@ class _LiveEditProfileState extends State<LiveEditProfile> {
   final _form = GlobalKey<FormState>();
   late final _fields = {
     for (final key in labels.keys)
-      key: TextEditingController(text: widget.member[key]?.toString() ?? ''),
+      if (widget.member['isTestAccount'] == true ||
+          !rosterManagedFields.contains(key))
+        key: TextEditingController(text: widget.member[key]?.toString() ?? ''),
   };
   bool _busy = false;
   String? _error;
@@ -353,81 +361,82 @@ class _LiveEditProfileState extends State<LiveEditProfile> {
               Text(
                 widget.member['isTestAccount'] == true
                     ? 'These edits affect only your separate test profile. Your verified login number and test ID cannot be changed here.'
-                    : 'Your login number is separate from your WhatsApp contact. FTC ID, section and cadre are managed by the roster administrator.',
+                    : 'You can update your contact details, education and personal text here. For corrections to your name, home district, blood group or BCS batch, contact an administrator. Your login number, FTC ID, section and cadre are also managed separately.',
               ),
               const SizedBox(height: 16),
               for (final entry in labels.entries)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: entry.key == 'homeDistrict'
-                      ? DropdownButtonFormField<String>(
-                          initialValue:
-                              bangladeshDistricts.contains(
-                                _fields['homeDistrict']!.text,
-                              )
-                              ? _fields['homeDistrict']!.text
-                              : null,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: entry.value,
-                            helperText:
+                if (_fields.containsKey(entry.key))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: entry.key == 'homeDistrict'
+                        ? DropdownButtonFormField<String>(
+                            initialValue:
                                 bangladeshDistricts.contains(
                                   _fields['homeDistrict']!.text,
                                 )
+                                ? _fields['homeDistrict']!.text
+                                : null,
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: entry.value,
+                              helperText:
+                                  bangladeshDistricts.contains(
+                                    _fields['homeDistrict']!.text,
+                                  )
+                                  ? null
+                                  : 'Choose the correct district from the list',
+                            ),
+                            items: [
+                              for (final district in bangladeshDistricts)
+                                DropdownMenuItem(
+                                  value: district,
+                                  child: Text(district),
+                                ),
+                            ],
+                            onChanged: _busy
                                 ? null
-                                : 'Choose the correct district from the list',
-                          ),
-                          items: [
-                            for (final district in bangladeshDistricts)
-                              DropdownMenuItem(
-                                value: district,
-                                child: Text(district),
-                              ),
-                          ],
-                          onChanged: _busy
-                              ? null
-                              : (district) => _fields['homeDistrict']!.text =
-                                    district ?? '',
-                          validator: (value) =>
-                              value == null ? 'Choose a district' : null,
-                        )
-                      : TextFormField(
-                          controller: _fields[entry.key],
-                          decoration: InputDecoration(labelText: entry.value),
-                          keyboardType: entry.key == 'email'
-                              ? TextInputType.emailAddress
-                              : entry.key == 'bcsBatch'
-                              ? TextInputType.number
-                              : TextInputType.multiline,
-                          maxLines:
-                              [
-                                'aboutMe',
-                                'favouriteQuotation',
-                              ].contains(entry.key)
-                              ? 3
-                              : 1,
-                          validator: (text) {
-                            final value = text?.trim() ?? '';
-                            if (entry.key == 'bcsBatch') {
-                              final number = int.tryParse(value);
-                              return value.isNotEmpty &&
-                                      (number == null ||
-                                          number < 1 ||
-                                          number > 32767)
-                                  ? 'Enter a positive batch number, or leave blank.'
-                                  : null;
-                            }
-                            if (![
+                                : (district) => _fields['homeDistrict']!.text =
+                                      district ?? '',
+                            validator: (value) =>
+                                value == null ? 'Choose a district' : null,
+                          )
+                        : TextFormField(
+                            controller: _fields[entry.key],
+                            decoration: InputDecoration(labelText: entry.value),
+                            keyboardType: entry.key == 'email'
+                                ? TextInputType.emailAddress
+                                : entry.key == 'bcsBatch'
+                                ? TextInputType.number
+                                : TextInputType.multiline,
+                            maxLines:
+                                [
                                   'aboutMe',
                                   'favouriteQuotation',
-                                ].contains(entry.key) &&
-                                value.isEmpty) {
-                              return 'This field is required.';
-                            }
-                            return null;
-                          },
-                        ),
-                ),
+                                ].contains(entry.key)
+                                ? 3
+                                : 1,
+                            validator: (text) {
+                              final value = text?.trim() ?? '';
+                              if (entry.key == 'bcsBatch') {
+                                final number = int.tryParse(value);
+                                return value.isNotEmpty &&
+                                        (number == null ||
+                                            number < 1 ||
+                                            number > 32767)
+                                    ? 'Enter a positive batch number, or leave blank.'
+                                    : null;
+                              }
+                              if (![
+                                    'aboutMe',
+                                    'favouriteQuotation',
+                                  ].contains(entry.key) &&
+                                  value.isEmpty) {
+                                return 'This field is required.';
+                              }
+                              return null;
+                            },
+                          ),
+                  ),
               if (_error != null)
                 Text(
                   _error!,
